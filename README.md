@@ -1,38 +1,104 @@
 # IRCUB — Integrated Revenue Collection & Utility Billing Platform
 
-Farsight Africa Technologies — Software Developer POC (take-home).
+**Farsight Africa Technologies — Software Developer POC (take-home)**
 
-## Stack
+Candidate: **Yusuf Mohamed Ahmed**
 
-| Layer | Technology |
+| Item | Link |
 |---|---|
-| Frontend | React 18 + Vite (Dompet admin template) |
-| Backend | Laravel (API) |
-| Database | PostgreSQL |
-| Cache / queues | Redis |
-| Deployment | Docker Compose → Contabo VPS |
+| Repository | https://github.com/proyousseph/farsight-ircub-poc |
+| Demo (planned) | https://ircub.waagefaal.so |
 
-## Project layout
+> Demo subdomain DNS already points to the Contabo VPS (`161.97.90.92`). App deploy + Nginx mapping will follow once core modules are ready.
 
+---
+
+## Overview
+
+IRCUB is a proof-of-concept platform that automates:
+
+- Tax revenue assessment and collection for a Ministry of Finance
+- Water utility billing for a state water agency
+- Multi-channel payments (mock bank / mobile money)
+- Automated posting to a mock government FMIS
+- Role-based operations and an executive dashboard
+
+External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
+
+---
+
+## Technology stack
+
+| Layer | Choice |
+|---|---|
+| Frontend | React 18 + Vite (Dompet admin template, Envato Elements) |
+| Backend | Laravel 13 API + Sanctum |
+| Database | PostgreSQL 16 |
+| Cache / queues / sessions | Redis 7 (Predis client) |
+| Local infra | Docker Compose |
+| Hosted demo | Contabo VPS + subdomain `ircub.waagefaal.so` |
+
+---
+
+## Project structure
+
+```text
+.
+├── frontend/            # Dompet React + Vite admin UI
+├── backend/             # Laravel API
+├── docker/              # Nginx / deploy configs (to be expanded)
+├── docs/                # Notes, ERD (upcoming)
+├── scripts/             # Helper scripts
+├── docker-compose.yml   # Postgres + Redis
+└── README.md
 ```
-Project/
-├── frontend/     # Dompet React + Vite admin UI
-├── backend/      # Laravel API
-├── docker/       # Nginx and other Docker configs
-├── docs/         # ERD, Dompet docs, notes
-├── scripts/      # Helper scripts
-└── docker-compose.yml
-```
 
-## Local quick start
+---
 
-### 1. Infrastructure
+## Current progress
+
+### Done (Day 1 — User & Role Management)
+
+- [x] Docker Compose: PostgreSQL + Redis
+- [x] Laravel configured for Postgres / Redis
+- [x] Roles & permissions schema (DB-driven)
+- [x] Six system roles seeded with permissions
+- [x] Sanctum auth API: login / logout / me
+- [x] Permission middleware
+- [x] Dompet login wired to Laravel API
+- [x] Role-based sidebar menus
+
+### Next
+
+- [ ] Taxpayer & customer registry
+- [ ] Tax assessment & collection (+ CSV upload, audit)
+- [ ] Water utility billing
+- [ ] Payment channel mocks + retries
+- [ ] FMIS posting & reconciliation
+- [ ] Executive dashboard + forecast
+- [ ] Dockerized app deploy to `ircub.waagefaal.so`
+
+---
+
+## Local setup
+
+### Prerequisites
+
+- Docker Desktop
+- PHP 8.3+ with `pdo_pgsql`
+- Composer
+- Node.js 20+ / npm
+
+### 1. Start infrastructure
 
 ```bash
 docker compose up -d
 ```
 
-Starts PostgreSQL on host port **5433** and Redis on **6379**.
+| Service | Host port | Notes |
+|---|---|---|
+| PostgreSQL | **5433** | Mapped away from local Postgres on 5432 |
+| Redis | **6379** | Cache, queues, sessions |
 
 ### 2. Backend API
 
@@ -45,43 +111,75 @@ php artisan migrate:fresh --seed
 php artisan serve --host=127.0.0.1 --port=8001
 ```
 
-API: `http://127.0.0.1:8001/api`
+API base URL: `http://127.0.0.1:8001/api`
 
 ### 3. Frontend
 
 ```bash
 cd frontend
+cp .env.example .env
 npm install
 npm run dev
 ```
 
 Open the URL Vite prints (usually `http://localhost:5173`).
 
-### Demo users (password for all: `Password@123`)
+---
+
+## Demo users
+
+Password for all accounts: **`Password@123`**
 
 | Role | Email |
 |---|---|
-| System Administrator | admin@ircub.test |
-| Revenue Supervisor | supervisor@ircub.test |
-| Revenue Officer | officer@ircub.test |
-| Water Billing Officer | water@ircub.test |
-| Auditor | auditor@ircub.test |
-| Taxpayer / Customer | taxpayer@ircub.test |
+| System Administrator | `admin@ircub.test` |
+| Revenue Supervisor | `supervisor@ircub.test` |
+| Revenue Officer | `officer@ircub.test` |
+| Water Billing Officer | `water@ircub.test` |
+| Auditor | `auditor@ircub.test` |
+| Taxpayer / Customer | `taxpayer@ircub.test` |
 
-## Docker (Postgres + Redis + app)
+---
+
+## Auth API (available now)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/auth/login` | No | Returns Bearer token + user roles/permissions |
+| `GET` | `/api/auth/me` | Bearer | Current user profile |
+| `POST` | `/api/auth/logout` | Bearer | Revoke current token |
+
+Example login:
 
 ```bash
-docker compose up -d
+curl -X POST http://127.0.0.1:8001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d "{\"email\":\"admin@ircub.test\",\"password\":\"Password@123\"}"
 ```
 
-See `docker-compose.yml` for services: `postgres`, `redis`, `backend`, `frontend`, `nginx`.
+---
 
-## Assumptions (POC)
+## Assumptions & limitations
 
-- External banks, mobile money, SMS, FX rates, and FMIS are mocked.
-- Demo/sandbox data only — no real taxpayer or financial data.
-- AI coding assistants used during development will be declared in the submission README.
+- Banks, mobile money, SMS, FX rates, and FMIS are simulated with mock services.
+- Only sandbox / test data is used — no real personal, taxpayer, or financial data.
+- Optional 2FA is planned as a configurable stub, not a full production MFA product.
+- Frontend still contains Dompet demo pages that will be replaced or hidden as IRCUB modules are built.
+- Hosted HTTPS demo on Contabo will be enabled after core modules are deployable.
 
-## Candidate
+---
 
-Yusuf Mohamed Ahmed
+## AI assistance declaration
+
+AI coding assistants (including Cursor) were used during scaffolding and implementation of this POC.
+
+- All submitted code can be explained by the candidate line by line.
+- Commit history is kept intentional and feature-based for review.
+
+---
+
+## License / third-party UI
+
+- Application code in this repository is submitted for the Farsight Africa evaluation.
+- The Dompet React admin UI is used under an Envato Elements license for this evaluation project and is not redistributed as a standalone commercial template.
