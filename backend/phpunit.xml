@@ -32,5 +32,11 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="CHANNEL_ALLOW_SIMULATE" value="true"/>
+        <env name="CHANNEL_CALLBACK_SECRET" value="ircub-mock-callback-secret"/>
+        <env name="IRCUB_2FA_ENABLED" value="true"/>
+        <env name="IRCUB_2FA_ALLOW_STUB" value="true"/>
+        <env name="IRCUB_DEMO_OTP" value="123456"/>
+        <env name="IRCUB_DOCS_ENABLED" value="true"/>
     </php>
 </phpunit>

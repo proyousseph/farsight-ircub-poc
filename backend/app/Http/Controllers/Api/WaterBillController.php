@@ -57,12 +57,16 @@ class WaterBillController extends Controller
             return response()->json(['message' => 'You do not have access to this water bill.'], 403);
         }
 
+        $payerColumns = $request->user()?->hasPermission('bills.view')
+            ? 'id,tin,full_name,phone,email,address'
+            : 'id,tin,full_name';
+
         $waterBill->load([
-            'payer:id,tin,full_name,phone,email,address',
+            'payer:'.$payerColumns,
             'waterAccount',
             'billingCycle',
             'meterReading',
-            'payments',
+            'payments:id,water_bill_id,amount,status,external_ref,paid_at,channel',
         ]);
 
         return response()->json([
@@ -85,10 +89,19 @@ class WaterBillController extends Controller
         ]);
     }
 
-    public function pdf(WaterBill $waterBill): StreamedResponse|JsonResponse
+    public function pdf(Request $request, WaterBill $waterBill): StreamedResponse|JsonResponse
     {
+        if (! OwnsPayerScope::canAccessPayer($request->user(), (int) $waterBill->payer_id, 'bills.view', 'bills.view_own')) {
+            return response()->json(['message' => 'You do not have access to this water bill.'], 403);
+        }
+
         if (! $waterBill->pdf_path || ! Storage::disk('local')->exists($waterBill->pdf_path)) {
             return response()->json(['message' => 'Bill PDF not available. Release the bill first if it is held.'], 404);
+        }
+
+        $normalized = str_replace('\\', '/', $waterBill->pdf_path);
+        if (! str_starts_with($normalized, 'bills/')) {
+            return response()->json(['message' => 'Bill PDF not available.'], 404);
         }
 
         $mime = str_ends_with($waterBill->pdf_path, '.html') ? 'text/html' : 'application/pdf';

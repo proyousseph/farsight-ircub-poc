@@ -22,6 +22,33 @@ class AuditLogController extends Controller
             ->latest('id')
             ->paginate(\App\Support\Pagination::perPage($request, 20));
 
+        $logs->getCollection()->transform(function (AuditLog $log) {
+            $log->before = $this->redactSensitive($log->before);
+            $log->after = $this->redactSensitive($log->after);
+
+            return $log;
+        });
+
         return response()->json($logs);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $payload
+     * @return array<string, mixed>|null
+     */
+    private function redactSensitive(?array $payload): ?array
+    {
+        if ($payload === null) {
+            return null;
+        }
+
+        $sensitive = ['password', 'remember_token', 'token', 'secret', 'signature', 'authorization', 'initiate_payload', 'callback_payload'];
+        foreach ($sensitive as $key) {
+            if (array_key_exists($key, $payload)) {
+                $payload[$key] = '[redacted]';
+            }
+        }
+
+        return $payload;
     }
 }

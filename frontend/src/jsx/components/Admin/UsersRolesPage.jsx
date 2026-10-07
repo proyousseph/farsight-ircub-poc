@@ -19,7 +19,7 @@ const UsersRolesPage = () => {
   const [info, setInfo] = useState('');
   const [tab, setTab] = useState('users');
   const [userForm, setUserForm] = useState({
-    name: '', email: '', password: 'Password@123', role_ids: [], is_active: true, two_factor_enabled: false,
+    name: '', email: '', password: '', role_ids: [], is_active: true, two_factor_enabled: false,
   });
   const [roleForm, setRoleForm] = useState({ name: '', description: '', parent_id: '', permission_ids: [] });
 
@@ -47,7 +47,7 @@ const UsersRolesPage = () => {
         role_ids: userForm.role_ids.map(Number),
       });
       setInfo(data.message);
-      setUserForm({ name: '', email: '', password: 'Password@123', role_ids: [], is_active: true, two_factor_enabled: false });
+      setUserForm({ name: '', email: '', password: '', role_ids: [], is_active: true, two_factor_enabled: false });
       await load();
     } catch (err) {
       setError(err.response?.data?.message || Object.values(err.response?.data?.errors || {})[0]?.[0] || 'Create user failed.');
@@ -145,7 +145,7 @@ const UsersRolesPage = () => {
                       {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                     </select>
                   </div>
-                  <label className="form-check"><input type="checkbox" className="form-check-input" checked={userForm.two_factor_enabled} onChange={(e) => setUserForm({ ...userForm, two_factor_enabled: e.target.checked })} /> Enable 2FA stub</label>
+                  <label className="form-check"><input type="checkbox" className="form-check-input" checked={userForm.two_factor_enabled} onChange={(e) => setUserForm({ ...userForm, two_factor_enabled: e.target.checked })} /> Require 2FA at login</label>
                   <button className="btn btn-primary" type="submit">Create</button>
                 </form>
               </div>

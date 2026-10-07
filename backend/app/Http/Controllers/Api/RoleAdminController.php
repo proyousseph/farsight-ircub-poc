@@ -49,7 +49,15 @@ class RoleAdminController extends Controller
         $parent = isset($data['parent_id']) ? Role::query()->find($data['parent_id']) : null;
         $level = $parent ? ((int) $parent->level + 1) : 0;
 
+        $actor = $request->user();
+        if (! $parent && ! $actor?->hasRole('system-administrator')) {
+            throw ValidationException::withMessages([
+                'parent_id' => 'Only a system administrator can create a top-level role. Choose a parent role.',
+            ]);
+        }
+
         $this->assertSubsetOfParent($parent, $data['permission_ids']);
+        $this->assertSubsetOfActor($actor, $data['permission_ids']);
 
         $role = Role::query()->create([
             'name' => $data['name'],
@@ -100,9 +108,16 @@ class RoleAdminController extends Controller
             $role->level = $parent ? ((int) $parent->level + 1) : 0;
         }
 
+        if (array_key_exists('parent_id', $data) && $data['parent_id'] === null && ! $request->user()?->hasRole('system-administrator')) {
+            throw ValidationException::withMessages([
+                'parent_id' => 'Only a system administrator can set a role as top-level.',
+            ]);
+        }
+
         if (isset($data['permission_ids'])) {
             $parent = $role->parent_id ? Role::query()->find($role->parent_id) : null;
             $this->assertSubsetOfParent($parent, $data['permission_ids']);
+            $this->assertSubsetOfActor($request->user(), $data['permission_ids']);
             $role->permissions()->sync($data['permission_ids']);
         }
 
@@ -129,6 +144,34 @@ class RoleAdminController extends Controller
         if ($extra !== []) {
             throw ValidationException::withMessages([
                 'permission_ids' => 'Child role permissions must be a subset of the parent role permissions (hierarchy).',
+            ]);
+        }
+    }
+
+    /**
+     * @param  list<int>  $permissionIds
+     */
+    private function assertSubsetOfActor(?\App\Models\User $actor, array $permissionIds): void
+    {
+        if (! $actor) {
+            throw ValidationException::withMessages([
+                'permission_ids' => 'Authenticated user required.',
+            ]);
+        }
+
+        if ($actor->hasRole('system-administrator')) {
+            return;
+        }
+
+        $allowedSlugs = $actor->permissions();
+        $requestedSlugs = Permission::query()
+            ->whereIn('id', $permissionIds)
+            ->pluck('slug')
+            ->all();
+        $extra = array_values(array_diff($requestedSlugs, $allowedSlugs));
+        if ($extra !== []) {
+            throw ValidationException::withMessages([
+                'permission_ids' => 'You cannot grant permissions you do not hold.',
             ]);
         }
     }

@@ -32,14 +32,13 @@ export function signupAction(email, password, navigate) {
 }
 
 export function Logout(navigate) {
-  logoutRequest();
-  localStorage.removeItem('userDetails');
-  if (navigate) {
-    navigate('/login');
-  }
-
-  return {
-    type: LOGOUT_ACTION,
+  return (dispatch) => {
+    localStorage.removeItem('userDetails');
+    dispatch({ type: LOGOUT_ACTION });
+    if (navigate) {
+      navigate('/login');
+    }
+    logoutRequest();
   };
 }
 

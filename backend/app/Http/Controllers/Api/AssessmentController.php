@@ -96,21 +96,31 @@ class AssessmentController extends Controller
             return response()->json(['message' => 'You do not have access to this assessment.'], 403);
         }
 
+        $payerColumns = $request->user()?->hasPermission('assessments.view')
+            ? 'id,tin,full_name,phone,email'
+            : 'id,tin,full_name';
+
         $assessment->load([
-            'payer:id,tin,full_name,phone,email',
-            'payments',
-            'creator:id,name,email',
+            'payer:'.$payerColumns,
+            'payments:id,assessment_id,amount,status,external_ref,paid_at,channel',
+            'creator:id,name',
         ]);
 
-        return response()->json([
+        $payload = [
             'assessment' => $assessment,
             'outstanding' => $assessment->outstandingAmount(),
-            'audit_logs' => AuditLog::query()
+        ];
+
+        if ($request->user()?->hasPermission('audit.view')) {
+            $payload['audit_logs'] = AuditLog::query()
                 ->with('user:id,name')
                 ->where('entity_type', 'Assessment')
                 ->where('entity_id', $assessment->id)
                 ->latest()
-                ->get(),
-        ]);
+                ->limit(50)
+                ->get();
+        }
+
+        return response()->json($payload);
     }
 }

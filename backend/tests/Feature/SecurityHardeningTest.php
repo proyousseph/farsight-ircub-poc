@@ -1,0 +1,128 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\BillingCycle;
+use App\Models\Payer;
+use App\Models\User;
+use App\Models\WaterAccount;
+use App\Models\WaterBill;
+use Database\Seeders\PayerSeeder;
+use Database\Seeders\RevenueSeeder;
+use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
+
+class SecurityHardeningTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RolePermissionSeeder::class);
+        $this->seed(PayerSeeder::class);
+        $this->seed(RevenueSeeder::class);
+    }
+
+    public function test_taxpayer_cannot_capture_payments(): void
+    {
+        $taxpayer = User::query()->where('email', 'taxpayer@ircub.test')->firstOrFail();
+        $payer = Payer::query()->firstOrFail();
+
+        Sanctum::actingAs($taxpayer);
+
+        $this->postJson('/api/payments', [
+            'payer_id' => $payer->id,
+            'revenue_code' => 'BIZLIC',
+            'amount' => 10,
+            'channel' => 'CASH',
+            'external_ref' => 'SEC-TAX-'.uniqid(),
+        ])->assertForbidden();
+    }
+
+    public function test_deactivated_user_token_is_rejected(): void
+    {
+        $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();
+        Sanctum::actingAs($officer);
+
+        $officer->is_active = false;
+        $officer->save();
+
+        $this->getJson('/api/auth/me')->assertUnauthorized();
+    }
+
+    public function test_water_bill_pdf_enforces_owner_scope(): void
+    {
+        $taxpayer = User::query()->where('email', 'taxpayer@ircub.test')->firstOrFail();
+        $this->assertNotNull($taxpayer->payer_id);
+
+        $otherPayer = Payer::query()->where('id', '!=', $taxpayer->payer_id)->firstOrFail();
+        $account = WaterAccount::query()->create([
+            'payer_id' => $otherPayer->id,
+            'account_no' => 'WA-SEC-'.uniqid(),
+            'meter_no' => 'M-SEC-'.uniqid(),
+            'tariff_class' => 'DOMESTIC',
+            'status' => 'ACTIVE',
+            'location' => 'Security Test',
+        ]);
+        $cycle = BillingCycle::query()->create([
+            'period' => '2026-08',
+            'status' => 'COMPLETED',
+            'started_at' => now(),
+            'completed_at' => now(),
+        ]);
+        $otherBill = WaterBill::query()->create([
+            'billing_cycle_id' => $cycle->id,
+            'water_account_id' => $account->id,
+            'payer_id' => $otherPayer->id,
+            'bill_number' => 'WB-SEC-'.uniqid(),
+            'period' => '2026-08',
+            'consumption' => 10,
+            'tariff_amount' => 5,
+            'fixed_charge' => 0,
+            'total_due' => 50,
+            'amount_paid' => 0,
+            'due_date' => now()->addDays(14)->toDateString(),
+            'status' => 'RELEASED',
+            'pdf_path' => 'bills/test-secure.pdf',
+            'abnormal_flag' => false,
+        ]);
+
+        Sanctum::actingAs($taxpayer);
+        $this->getJson('/api/water-bills/'.$otherBill->id.'/pdf')->assertForbidden();
+    }
+
+    public function test_callback_rejects_empty_identifiers(): void
+    {
+        $payload = ['status' => 'SUCCESS', 'timestamp' => time()];
+        $raw = json_encode($payload, JSON_UNESCAPED_SLASHES);
+        $sig = hash_hmac('sha256', $raw, config('channels.callback_secret'));
+
+        $this->call(
+            'POST',
+            '/api/channel/callback',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X-Channel-Signature' => $sig,
+            ],
+            $raw
+        )->assertUnauthorized();
+    }
+
+    public function test_must_change_password_blocks_business_routes(): void
+    {
+        $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();
+        $officer->must_change_password = true;
+        $officer->save();
+
+        Sanctum::actingAs($officer);
+
+        $this->getJson('/api/payers')->assertForbidden()->assertJsonPath('must_change_password', true);
+        $this->getJson('/api/auth/me')->assertOk();
+    }
+}

@@ -55,6 +55,7 @@ class User extends Authenticatable
     public function permissions(): array
     {
         return $this->roles()
+            ->where('roles.is_active', true)
             ->with('permissions')
             ->get()
             ->pluck('permissions')
@@ -67,7 +68,7 @@ class User extends Authenticatable
 
     public function hasRole(string $slug): bool
     {
-        return $this->roles()->where('slug', $slug)->exists();
+        return $this->roles()->where('roles.slug', $slug)->where('roles.is_active', true)->exists();
     }
 
     public function hasPermission(string $slug): bool
@@ -77,7 +78,7 @@ class User extends Authenticatable
 
     public function toAuthArray(): array
     {
-        $roles = $this->roles()->with('permissions')->get();
+        $roles = $this->roles()->where('roles.is_active', true)->with('permissions')->get();
 
         return [
             'id' => $this->id,
@@ -85,6 +86,7 @@ class User extends Authenticatable
             'email' => $this->email,
             'phone' => $this->phone,
             'is_active' => $this->is_active,
+            'must_change_password' => (bool) $this->must_change_password,
             'two_factor_enabled' => (bool) $this->two_factor_enabled,
             'payer_id' => $this->payer_id,
             'roles' => $roles->map(fn (Role $role) => [

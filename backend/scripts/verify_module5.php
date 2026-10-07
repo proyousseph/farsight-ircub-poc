@@ -77,9 +77,11 @@ $payload = [
     'provider_txn_id' => $cbPending->provider_txn_id,
     'external_ref' => $cbPending->external_ref,
     'status' => 'SUCCESS',
+    'timestamp' => time(),
 ];
-$sig = hash_hmac('sha256', json_encode($payload, JSON_UNESCAPED_SLASHES), config('channels.callback_secret'));
-$cb = $service->handleCallback($payload, $sig);
+$rawBody = json_encode($payload, JSON_UNESCAPED_SLASHES);
+$sig = hash_hmac('sha256', $rawBody, config('channels.callback_secret'));
+$cb = $service->handleCallback($payload, $sig, $rawBody);
 ok('CALLBACK_VERIFY', $cb->status === 'SUCCESS' && $cb->callback_verified, 'status='.$cb->status);
 
 try {

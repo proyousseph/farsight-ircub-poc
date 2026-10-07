@@ -66,6 +66,10 @@ class PaymentController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
+        if (! OwnsPayerScope::canAccessPayer($request->user(), (int) $data['payer_id'], 'payments.view', 'payments.view_own')) {
+            return response()->json(['message' => 'You do not have access to capture payments for this payer.'], 403);
+        }
+
         if (! empty($data['assessment_id'])) {
             $assessment = Assessment::query()->findOrFail($data['assessment_id']);
             if ((int) $assessment->payer_id !== (int) $data['payer_id']) {
@@ -73,6 +77,9 @@ class PaymentController extends Controller
             }
             if ($assessment->status === 'REVERSED') {
                 return response()->json(['message' => 'Cannot pay a reversed assessment.'], 422);
+            }
+            if ((float) $data['amount'] - $assessment->outstandingAmount() > 0.009) {
+                return response()->json(['message' => 'Amount exceeds assessment outstanding balance.'], 422);
             }
         }
 
@@ -83,6 +90,9 @@ class PaymentController extends Controller
             }
             if ($waterBill->status === 'HELD') {
                 return response()->json(['message' => 'Cannot pay a held water bill. Release it first.'], 422);
+            }
+            if ((float) $data['amount'] - $waterBill->outstandingAmount() > 0.009) {
+                return response()->json(['message' => 'Amount exceeds water bill outstanding balance.'], 422);
             }
         }
 
@@ -105,6 +115,9 @@ class PaymentController extends Controller
 
             if (! empty($data['assessment_id'])) {
                 $assessment = Assessment::query()->lockForUpdate()->findOrFail($data['assessment_id']);
+                if ((float) $data['amount'] - $assessment->outstandingAmount() > 0.009) {
+                    throw new \RuntimeException('Amount exceeds assessment outstanding balance.');
+                }
                 $before = $assessment->toArray();
                 $assessment->amount_paid = (float) $assessment->amount_paid + (float) $data['amount'];
                 $assessment->save();
@@ -122,6 +135,9 @@ class PaymentController extends Controller
 
             if (! empty($data['water_bill_id'])) {
                 $bill = \App\Models\WaterBill::query()->lockForUpdate()->findOrFail($data['water_bill_id']);
+                if ((float) $data['amount'] - $bill->outstandingAmount() > 0.009) {
+                    throw new \RuntimeException('Amount exceeds water bill outstanding balance.');
+                }
                 $before = $bill->toArray();
                 $bill->amount_paid = (float) $bill->amount_paid + (float) $data['amount'];
                 $bill->save();
@@ -226,6 +242,11 @@ class PaymentController extends Controller
                 continue;
             }
 
+            if (! OwnsPayerScope::canAccessPayer($request->user(), (int) $payer->id, 'payments.view', 'payments.view_own')) {
+                $rejected[] = ['row' => $rowNumber, 'reason' => 'No access to this payer.', 'data' => $data];
+                continue;
+            }
+
             $revenue = RevenueType::query()
                 ->where('revenue_code', strtoupper($data['revenue_code']))
                 ->where('is_active', true)
@@ -254,6 +275,13 @@ class PaymentController extends Controller
 
             try {
                 $payment = DB::transaction(function () use ($data, $payer, $assessment, $request) {
+                    if ($assessment) {
+                        $assessment = Assessment::query()->lockForUpdate()->findOrFail($assessment->id);
+                        if ((float) $data['amount'] - $assessment->outstandingAmount() > 0.009) {
+                            throw new \RuntimeException('Amount exceeds assessment outstanding balance.');
+                        }
+                    }
+
                     $payment = Payment::query()->create([
                         'payer_id' => $payer->id,
                         'assessment_id' => $assessment?->id,
@@ -287,7 +315,7 @@ class PaymentController extends Controller
             } catch (\Throwable $e) {
                 $rejected[] = [
                     'row' => $rowNumber,
-                    'reason' => $e->getMessage(),
+                    'reason' => config('app.debug') ? $e->getMessage() : 'Row could not be processed.',
                     'data' => $data,
                 ];
             }

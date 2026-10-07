@@ -9,12 +9,14 @@ import {
 import logo from "../../assets/images/logo-full-white.png";
 import loginbg from "../../assets/images/bg-login.jpg";
 
+const isDev = Boolean(import.meta.env.DEV);
+
 function Login(props) {
   let year = new Date().getFullYear();
-  const [email, setEmail] = useState('admin@ircub.test');
+  const [email, setEmail] = useState(isDev ? 'admin@ircub.test' : '');
   let errorsObj = { email: '', password: '', otp: '' };
   const [errors, setErrors] = useState(errorsObj);
-  const [password, setPassword] = useState('Password@123');
+  const [password, setPassword] = useState(isDev ? 'Password@123' : '');
   const [otp, setOtp] = useState('');
   const needs2fa = Boolean(props.errorMessage?.requires_2fa);
 
@@ -49,12 +51,12 @@ function Login(props) {
     <div className="login-main-page" style={{ backgroundImage: "url(" + loginbg + ")" }}>
       <div className="login-wrapper">
         <div className="login-aside-left" >
-          <Link to="/dashboard" className="login-logo">
+          <Link to="/login" className="login-logo">
             <img src={logo} alt="" />
           </Link>
           <div className="login-description">
             <h2 className="main-title mb-2">Welcome To IRCUB</h2>
-            <p className="">Integrated Revenue Collection & Utility Billing Platform — Farsight Africa POC. Sign in with your assigned role account.</p>
+            <p className="">Integrated Revenue Collection & Utility Billing Platform — Farsight Africa. Sign in with your assigned role account.</p>
             <div className="mt-5 bottom-privacy">
               <span className="text-white-50">© {year} IRCUB · Farsight Africa</span>
             </div>
@@ -69,7 +71,11 @@ function Login(props) {
                     <div className="auth-form-1">
                       <div className="mb-4">
                         <h3 className="dz-title mb-1">Sign in</h3>
-                        <p className="">Demo: admin@ircub.test / Password@123</p>
+                        {isDev ? (
+                          <p className="text-muted small mb-0">Local demo credentials are prefilled for development only.</p>
+                        ) : (
+                          <p className="">Use the credentials issued by your administrator.</p>
+                        )}
                       </div>
                       {props.errorMessage && (
                         <div className='bg-red-300 text-red-900 border border-red-900 p-1 my-2'>
@@ -90,6 +96,7 @@ function Login(props) {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Type Your Email Address"
+                            autoComplete="username"
                           />
                           {errors.email && <div className="text-danger fs-12">{errors.email}</div>}
                         </div>
@@ -100,6 +107,7 @@ function Login(props) {
                             className="form-control"
                             value={password}
                             placeholder="Type Your Password"
+                            autoComplete="current-password"
                             onChange={(e) =>
                               setPassword(e.target.value)
                             }
@@ -114,11 +122,11 @@ function Login(props) {
                               type="text"
                               className="form-control"
                               value={otp}
-                              placeholder="Demo OTP: 123456"
+                              placeholder="One-time code"
                               onChange={(e) => setOtp(e.target.value)}
+                              autoComplete="one-time-code"
                             />
                             {errors.otp && <div className="text-danger fs-12">{errors.otp}</div>}
-                            <small className="text-muted">Optional 2FA stub — auditor account uses OTP 123456.</small>
                           </div>
                         )}
                         <div className="text-center mt-4">
@@ -130,11 +138,6 @@ function Login(props) {
                           </button>
                         </div>
                       </form>
-                      <div className="new-account mt-2">
-                        <p className="mb-0 text-muted fs-12">
-                          Self-registration is disabled. Use a seeded demo account.
-                        </p>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -145,7 +148,7 @@ function Login(props) {
       </div>
     </div>
   );
-};
+}
 
 const mapStateToProps = (state) => {
   return {
@@ -154,4 +157,5 @@ const mapStateToProps = (state) => {
     showLoading: state.auth.showLoading,
   };
 };
+
 export default connect(mapStateToProps)(Login);

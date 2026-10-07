@@ -21,18 +21,21 @@ use App\Http\Controllers\Api\WaterBillController;
 use Illuminate\Support\Facades\Route;
 
 // Public channel callback (HMAC verified inside controller).
-Route::post('channel/callback', [ChannelPaymentController::class, 'callback']);
+Route::post('channel/callback', [ChannelPaymentController::class, 'callback'])
+    ->middleware('throttle:60,1');
 
 Route::prefix('auth')->group(function () {
-    Route::post('login', [AuthController::class, 'login']);
+    Route::post('login', [AuthController::class, 'login'])
+        ->middleware('throttle:10,1');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('logout', [AuthController::class, 'logout']);
+        Route::put('password', [AuthController::class, 'changePassword']);
     });
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(function () {
     Route::get('/health/secure', function () {
         return response()->json([
             'status' => 'ok',

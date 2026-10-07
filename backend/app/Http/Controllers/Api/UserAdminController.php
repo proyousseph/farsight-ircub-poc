@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class UserAdminController extends Controller
 {
@@ -43,12 +44,15 @@ class UserAdminController extends Controller
             'role_ids.*' => ['integer', 'exists:roles,id'],
         ]);
 
+        $this->assertAssignableRoles($request->user(), $data['role_ids']);
+
         $user = User::query()->create([
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
             'password' => Hash::make($data['password']),
             'is_active' => $data['is_active'] ?? true,
+            'must_change_password' => true,
             'two_factor_enabled' => $data['two_factor_enabled'] ?? false,
             'payer_id' => $data['payer_id'] ?? null,
             'email_verified_at' => now(),
@@ -76,8 +80,15 @@ class UserAdminController extends Controller
             'role_ids.*' => ['integer', 'exists:roles,id'],
         ]);
 
+        if (isset($data['role_ids'])) {
+            $this->assertAssignableRoles($request->user(), $data['role_ids']);
+        }
+
+        $wasActive = (bool) $user->is_active;
+
         if (array_key_exists('password', $data) && $data['password']) {
             $user->password = Hash::make($data['password']);
+            $user->must_change_password = true;
         }
         foreach (['name', 'email', 'phone', 'is_active', 'two_factor_enabled', 'payer_id'] as $field) {
             if (array_key_exists($field, $data)) {
@@ -90,9 +101,47 @@ class UserAdminController extends Controller
             $user->roles()->sync($data['role_ids']);
         }
 
+        if ($wasActive && array_key_exists('is_active', $data) && ! $data['is_active']) {
+            $user->tokens()->delete();
+        }
+
         return response()->json([
             'message' => 'User updated.',
             'user' => $user->fresh()->load('roles:id,name,slug'),
         ]);
+    }
+
+    /**
+     * @param  list<int>  $roleIds
+     */
+    private function assertAssignableRoles(?User $actor, array $roleIds): void
+    {
+        if (! $actor) {
+            throw ValidationException::withMessages(['role_ids' => 'Authenticated user required.']);
+        }
+
+        $roles = Role::query()->whereIn('id', $roleIds)->with('permissions')->get();
+
+        if ($roles->contains(fn (Role $role) => $role->slug === 'system-administrator')
+            && ! $actor->hasRole('system-administrator')) {
+            throw ValidationException::withMessages([
+                'role_ids' => 'Only a system administrator can assign the system-administrator role.',
+            ]);
+        }
+
+        if ($actor->hasRole('system-administrator')) {
+            return;
+        }
+
+        $actorPermissions = $actor->permissions();
+        foreach ($roles as $role) {
+            $roleSlugs = $role->permissions->pluck('slug')->all();
+            $extra = array_values(array_diff($roleSlugs, $actorPermissions));
+            if ($extra !== []) {
+                throw ValidationException::withMessages([
+                    'role_ids' => 'You cannot assign a role that grants permissions you do not hold.',
+                ]);
+            }
+        }
     }
 }

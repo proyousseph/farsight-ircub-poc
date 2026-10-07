@@ -31,14 +31,24 @@ class AuthController extends Controller
 
         if (! $user->is_active) {
             throw ValidationException::withMessages([
-                'email' => ['This account has been deactivated.'],
+                'email' => ['Invalid email or password.'],
             ]);
         }
 
         $twoFactorGlobal = (bool) app(\App\Services\SystemConfigService::class)
-            ->get('two_factor_globally_enabled', config('ircub.two_factor.enabled_globally', true));
+            ->get('two_factor_globally_enabled', config('ircub.two_factor.enabled_globally', false));
         $twoFactorOn = $twoFactorGlobal && $user->two_factor_enabled;
+
         if ($twoFactorOn) {
+            $stubAllowed = (bool) config('ircub.two_factor.allow_stub', false);
+            $expected = (string) (config('ircub.two_factor.demo_otp') ?? '');
+
+            if (! $stubAllowed || $expected === '') {
+                throw ValidationException::withMessages([
+                    'email' => ['Two-factor authentication is required but not configured for this environment.'],
+                ]);
+            }
+
             $otp = $credentials['otp'] ?? null;
             if (! $otp) {
                 return response()->json([
@@ -46,13 +56,12 @@ class AuthController extends Controller
                     'requires_2fa' => true,
                     'two_factor' => [
                         'method' => 'otp_stub',
-                        'hint' => 'Enter the demo OTP configured for this POC.',
+                        'hint' => 'Enter the one-time code configured for this environment.',
                     ],
                     'password_policy' => PasswordPolicy::meta(),
                 ], 401);
             }
 
-            $expected = (string) config('ircub.two_factor.demo_otp', '123456');
             if (! hash_equals($expected, $otp)) {
                 throw ValidationException::withMessages([
                     'otp' => ['Invalid two-factor code.'],
@@ -79,6 +88,33 @@ class AuthController extends Controller
 
         return response()->json([
             'user' => $user->toAuthArray(),
+            'password_policy' => PasswordPolicy::meta(),
+        ]);
+    }
+
+    public function changePassword(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $data = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'confirmed', PasswordPolicy::rule()],
+        ]);
+
+        if (! Hash::check($data['current_password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['Current password is incorrect.'],
+            ]);
+        }
+
+        $user->password = $data['password'];
+        $user->must_change_password = false;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password updated successfully.',
+            'user' => $user->fresh()->toAuthArray(),
             'password_policy' => PasswordPolicy::meta(),
         ]);
     }

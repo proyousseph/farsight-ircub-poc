@@ -2,7 +2,7 @@ import swal from 'sweetalert';
 import api from './api';
 import { loginConfirmedAction, Logout } from '../store/actions/AuthActions';
 
-const TOKEN_TTL_SECONDS = 60 * 60 * 8; // 8 hours
+const TOKEN_TTL_SECONDS = 60 * 60 * 8; // 8 hours (aligned with Sanctum default)
 
 export function signUp() {
   return Promise.reject(new Error('Self-registration is disabled for IRCUB POC.'));
@@ -27,6 +27,7 @@ export function login(email, password, otp = null) {
         user,
         permissions: user.permissions || [],
         roles: user.roles || [],
+        must_change_password: Boolean(user.must_change_password),
       },
     };
   });
@@ -34,6 +35,14 @@ export function login(email, password, otp = null) {
 
 export function fetchMe() {
   return api.get('/auth/me');
+}
+
+export function changePassword(currentPassword, password, passwordConfirmation) {
+  return api.put('/auth/password', {
+    current_password: currentPassword,
+    password,
+    password_confirmation: passwordConfirmation,
+  });
 }
 
 export function logoutRequest() {
@@ -69,26 +78,54 @@ export function runLogoutTimer(dispatch, timer, navigate) {
   }, timer);
 }
 
-export function checkAutoLogin(dispatch, navigate) {
+export async function checkAutoLogin(dispatch, navigate) {
   const tokenDetailsString = localStorage.getItem('userDetails');
   if (!tokenDetailsString) {
     dispatch(Logout(navigate));
     return;
   }
 
-  const tokenDetails = JSON.parse(tokenDetailsString);
-  const expireDate = new Date(tokenDetails.expireDate);
-  const todaysDate = new Date();
-
-  if (todaysDate > expireDate) {
+  let tokenDetails;
+  try {
+    tokenDetails = JSON.parse(tokenDetailsString);
+  } catch {
+    localStorage.removeItem('userDetails');
     dispatch(Logout(navigate));
     return;
   }
 
-  dispatch(loginConfirmedAction(tokenDetails));
+  const expireDate = new Date(tokenDetails.expireDate);
+  const todaysDate = new Date();
 
-  const timer = expireDate.getTime() - todaysDate.getTime();
-  runLogoutTimer(dispatch, timer, navigate);
+  if (!tokenDetails.idToken || todaysDate > expireDate) {
+    dispatch(Logout(navigate));
+    return;
+  }
+
+  try {
+    const { data } = await fetchMe();
+    const user = data.user;
+    const refreshed = {
+      ...tokenDetails,
+      user,
+      permissions: user.permissions || [],
+      roles: user.roles || [],
+      email: user.email,
+      displayName: user.name,
+      must_change_password: Boolean(user.must_change_password),
+    };
+    saveTokenInLocalStorage({
+      ...refreshed,
+      expiresIn: String(
+        Math.max(60, Math.floor((expireDate.getTime() - Date.now()) / 1000)),
+      ),
+    });
+    dispatch(loginConfirmedAction(refreshed));
+    const timer = expireDate.getTime() - todaysDate.getTime();
+    runLogoutTimer(dispatch, timer, navigate);
+  } catch {
+    dispatch(Logout(navigate));
+  }
 }
 
 export function getStoredUser() {

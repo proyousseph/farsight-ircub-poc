@@ -136,7 +136,6 @@ class RolePermissionSeeder extends Seeder
                     'assessments.view_own',
                     'payments.view_own',
                     'bills.view_own',
-                    'payments.capture',
                 ],
             ],
         ];

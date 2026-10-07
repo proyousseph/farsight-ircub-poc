@@ -7,6 +7,7 @@ use App\Models\ChannelPayment;
 use App\Models\SupervisorNotification;
 use App\Services\ChannelPaymentService;
 use App\Services\MockFxRateClient;
+use App\Support\OwnsPayerScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -56,7 +57,7 @@ class ChannelPaymentController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $rules = [
             'payer_id' => ['required', 'exists:payers,id'],
             'assessment_id' => ['nullable', 'exists:assessments,id'],
             'water_bill_id' => ['nullable', 'exists:water_bills,id'],
@@ -66,13 +67,24 @@ class ChannelPaymentController extends Controller
             'currency' => ['required', 'string', 'max:10'],
             'local_currency' => ['nullable', 'string', 'max:10'],
             'external_ref' => ['nullable', 'string', 'max:100', 'unique:channel_payments,external_ref'],
-            'simulate' => ['nullable', Rule::in(['SUCCESS', 'FAILED', 'PENDING'])],
-        ]);
+        ];
+
+        if (config('channels.allow_simulate')) {
+            $rules['simulate'] = ['nullable', Rule::in(['SUCCESS', 'FAILED', 'PENDING'])];
+        }
+
+        $data = $request->validate($rules);
+
+        if (! OwnsPayerScope::canAccessPayer($request->user(), (int) $data['payer_id'], 'payments.view', 'payments.view_own')) {
+            return response()->json(['message' => 'You do not have access to initiate payments for this payer.'], 403);
+        }
 
         try {
             $payment = $this->channels->initiate($data, $request->user()?->id);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => config('app.debug') ? $e->getMessage() : 'Unable to initiate channel payment.',
+            ], 422);
         }
 
         return response()->json([
@@ -83,9 +95,19 @@ class ChannelPaymentController extends Controller
 
     public function show(ChannelPayment $channelPayment): JsonResponse
     {
-        $channelPayment->load(['payer', 'assessment', 'waterBill', 'payment', 'exchangeRate', 'creator:id,name']);
+        $channelPayment->load([
+            'payer:id,tin,full_name',
+            'assessment:id,control_number,status,payer_id',
+            'waterBill:id,bill_number,status,payer_id',
+            'payment:id,external_ref,status,amount',
+            'exchangeRate',
+            'creator:id,name',
+        ]);
 
-        return response()->json(['channel_payment' => $channelPayment]);
+        $payload = $channelPayment->toArray();
+        unset($payload['initiate_payload'], $payload['callback_payload'], $payload['status_history']);
+
+        return response()->json(['channel_payment' => $payload]);
     }
 
     public function check(Request $request, ChannelPayment $channelPayment): JsonResponse
@@ -128,20 +150,34 @@ class ChannelPaymentController extends Controller
 
     public function callback(Request $request): JsonResponse
     {
-        $payload = $request->all();
+        $rawBody = $request->getContent();
+        $payload = json_decode($rawBody, true);
+        if (! is_array($payload)) {
+            return response()->json(['message' => 'Invalid JSON payload.'], 422);
+        }
+
         $signature = $request->header('X-Channel-Signature');
 
         try {
-            $payment = $this->channels->handleCallback($payload, $signature);
+            $payment = $this->channels->handleCallback($payload, $signature, $rawBody);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 401);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Channel payment not found.'], 404);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => config('app.debug') ? $e->getMessage() : 'Unable to process callback.',
+            ], 422);
         }
 
         return response()->json([
             'message' => 'Callback processed.',
-            'channel_payment' => $payment,
+            'channel_payment' => [
+                'id' => $payment->id,
+                'status' => $payment->status,
+                'external_ref' => $payment->external_ref,
+                'payment_id' => $payment->payment_id,
+            ],
         ]);
     }
 

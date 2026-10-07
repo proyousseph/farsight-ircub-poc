@@ -23,4 +23,25 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let handlingUnauthorized = false;
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    if (status === 401 && !handlingUnauthorized) {
+      const url = String(error.config?.url || '');
+      if (!url.includes('/auth/login')) {
+        handlingUnauthorized = true;
+        localStorage.removeItem('userDetails');
+        if (window.location.pathname !== '/login') {
+          window.location.assign('/login');
+        }
+        handlingUnauthorized = false;
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
 export default api;

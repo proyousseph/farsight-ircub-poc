@@ -7,5 +7,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/docs/api', [ApiDocsController::class, 'ui'])->name('docs.api');
-Route::get('/docs/openapi.yaml', [ApiDocsController::class, 'openapi'])->name('docs.openapi');
+if (config('ircub.docs_enabled', false)) {
+    Route::get('/docs/api', [ApiDocsController::class, 'ui'])->name('docs.api');
+    Route::get('/docs/openapi.yaml', [ApiDocsController::class, 'openapi'])->name('docs.openapi');
+}

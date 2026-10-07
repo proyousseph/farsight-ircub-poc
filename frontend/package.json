@@ -10,15 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ckeditor/ckeditor5-build-classic": "^41.3.1",
-    "@ckeditor/ckeditor5-react": "^6.3.0",
     "@fullcalendar/daygrid": "^6.1.11",
     "@fullcalendar/interaction": "^6.1.11",
     "@fullcalendar/react": "^6.1.11",
     "@fullcalendar/timegrid": "^6.1.11",
     "@loadable/component": "^5.16.4",
     "@n8tb1t/use-scroll-position": "^2.0.3",
-    "axios": "^1.6.8",
+    "axios": "^1.7.9",
     "formik": "^2.4.6",
     "lightgallery": "^2.7.2",
     "p-min-delay": "^4.0.2",
@@ -30,7 +28,6 @@
     "react-color": "^2.19.3",
     "react-datepicker": "^6.9.0",
     "react-dom": "^18.2.0",
-    "react-dropzone-uploader": "^2.11.0",
     "react-form-stepper": "^2.0.3",
     "react-linear-gradient-picker": "^3.0.1",
     "react-nestable": "^3.0.2",
@@ -50,7 +47,6 @@
     "rsuite": "^5.60.0",
     "slick-carousel": "^1.8.1",
     "sweetalert": "^2.1.2",
-    "sweetalert2": "^11.10.8",
     "swiper": "^8.4.5",
     "yup": "^1.4.0"
   },

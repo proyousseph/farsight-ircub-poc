@@ -120,8 +120,14 @@ class PayerController extends Controller
         $taxBalance = (float) $assessments->sum(fn ($a) => $a->outstandingAmount());
         $waterBalance = (float) $bills->sum(fn ($b) => $b->outstandingAmount());
 
+        $payerPayload = $payer->toArray();
+        $canViewFull = $user?->hasPermission('payers.view');
+        if (! $canViewFull) {
+            unset($payerPayload['national_id'], $payerPayload['notes']);
+        }
+
         return response()->json([
-            'payer' => $payer,
+            'payer' => $payerPayload,
             'profile' => [
                 'assessments' => $assessments,
                 'bills' => $bills,
@@ -132,7 +138,7 @@ class PayerController extends Controller
                 'water_accounts_count' => $payer->waterAccounts->count(),
                 'obligations_count' => $payer->obligations->count(),
             ],
-            'duplicate_matches' => $payer->findDuplicateMatches(),
+            'duplicate_matches' => $canViewFull ? $payer->findDuplicateMatches() : [],
         ]);
     }
 

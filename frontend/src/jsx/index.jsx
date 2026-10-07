@@ -10,6 +10,7 @@ import Nav from "./layouts/nav";
 import Footer from "./layouts/Footer";
 import ScrollToTop from "./pages/ScrollToTop";
 import { ThemeContext } from "../context/ThemeContext";
+import RequirePermission from "./components/Common/RequirePermission";
 
 const ExecutiveDashboard = lazy(() => import("./components/Dashboard/ExecutiveDashboard"));
 const PayersList = lazy(() => import("./components/Payers/PayersList"));
@@ -35,32 +36,32 @@ const PageFallback = () => (
 
 const Markup = () => {
   const routes = [
-    { url: "", component: <ExecutiveDashboard /> },
-    { url: "dashboard", component: <ExecutiveDashboard /> },
-    { url: "reports", component: <ExecutiveDashboard /> },
+    { url: "", component: <ExecutiveDashboard />, anyOf: ['dashboard.view'] },
+    { url: "dashboard", component: <ExecutiveDashboard />, anyOf: ['dashboard.view'] },
+    { url: "reports", component: <ExecutiveDashboard />, anyOf: ['dashboard.view', 'reports.view'] },
 
-    { url: "payers", component: <PayersList /> },
-    { url: "payers/create", component: <PayerCreate /> },
-    { url: "payers/:id", component: <PayerProfile /> },
+    { url: "payers", component: <PayersList />, anyOf: ['payers.view', 'payers.view_own'] },
+    { url: "payers/create", component: <PayerCreate />, anyOf: ['payers.create'] },
+    { url: "payers/:id", component: <PayerProfile />, anyOf: ['payers.view', 'payers.view_own'] },
 
-    { url: "assessments", component: <AssessmentsPage /> },
-    { url: "my-assessments", component: <AssessmentsPage /> },
-    { url: "payments", component: <PaymentsPage /> },
+    { url: "assessments", component: <AssessmentsPage />, anyOf: ['assessments.view', 'assessments.view_own'] },
+    { url: "my-assessments", component: <AssessmentsPage />, anyOf: ['assessments.view', 'assessments.view_own'] },
+    { url: "payments", component: <PaymentsPage />, anyOf: ['payments.view', 'payments.view_own', 'payments.capture'] },
 
-    { url: "meter-readings", component: <MeterReadingsPage /> },
-    { url: "billing-cycles", component: <BillingCyclesPage /> },
-    { url: "water-bills", component: <WaterBillsPage /> },
-    { url: "my-bills", component: <WaterBillsPage /> },
+    { url: "meter-readings", component: <MeterReadingsPage />, anyOf: ['meters.capture', 'bills.view'] },
+    { url: "billing-cycles", component: <BillingCyclesPage />, anyOf: ['billing.run', 'bills.view'] },
+    { url: "water-bills", component: <WaterBillsPage />, anyOf: ['bills.view', 'bills.view_own'] },
+    { url: "my-bills", component: <WaterBillsPage />, anyOf: ['bills.view', 'bills.view_own'] },
 
-    { url: "channel-payments", component: <ChannelPaymentsPage /> },
-    { url: "reconciliation", component: <ReconciliationPage /> },
+    { url: "channel-payments", component: <ChannelPaymentsPage />, anyOf: ['payments.view', 'payments.capture'] },
+    { url: "reconciliation", component: <ReconciliationPage />, anyOf: ['channels.reconcile', 'fmis.reconcile'] },
 
-    { url: "fmis", component: <FmisPage /> },
-    { url: "fmis-reconciliation", component: <FmisPage /> },
+    { url: "fmis", component: <FmisPage />, anyOf: ['fmis.post', 'fmis.reconcile'] },
+    { url: "fmis-reconciliation", component: <FmisPage />, anyOf: ['fmis.reconcile', 'fmis.post'] },
 
-    { url: "users", component: <UsersRolesPage /> },
-    { url: "audit-logs", component: <AuditLogsPage /> },
-    { url: "system-config", component: <SystemConfigPage /> },
+    { url: "users", component: <UsersRolesPage />, anyOf: ['users.manage', 'roles.manage'] },
+    { url: "audit-logs", component: <AuditLogsPage />, anyOf: ['audit.view'] },
+    { url: "system-config", component: <SystemConfigPage />, anyOf: ['config.manage'] },
   ];
 
   return (
@@ -71,7 +72,15 @@ const Markup = () => {
             <Route
               key={i}
               path={data.url}
-              element={<Suspense fallback={<PageFallback />}>{data.component}</Suspense>}
+              element={
+                <Suspense fallback={<PageFallback />}>
+                  {data.anyOf ? (
+                    <RequirePermission anyOf={data.anyOf}>{data.component}</RequirePermission>
+                  ) : (
+                    data.component
+                  )}
+                </Suspense>
+              }
             />
           ))}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
