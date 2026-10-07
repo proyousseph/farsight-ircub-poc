@@ -163,25 +163,60 @@ const PayerProfile = () => {
                 </div>
 
                 <div className="tab-pane fade" id="tab-finance">
-                  <div className="row">
+                  <div className="row mb-3">
                     <div className="col-md-4">
                       <div className="border rounded p-3 mb-3">
                         <h6>Assessments</h6>
-                        <p className="mb-0 text-muted">{profile.assessments.length} records (Day 3)</p>
+                        <p className="mb-0">{profile.assessments?.length || 0} records</p>
                       </div>
                     </div>
                     <div className="col-md-4">
                       <div className="border rounded p-3 mb-3">
                         <h6>Bills</h6>
-                        <p className="mb-0 text-muted">{profile.bills.length} records (Day 3/4)</p>
+                        <p className="mb-0 text-muted">{profile.bills?.length || 0} records (Day 4)</p>
                       </div>
                     </div>
                     <div className="col-md-4">
                       <div className="border rounded p-3 mb-3">
                         <h6>Payments</h6>
-                        <p className="mb-0 text-muted">{profile.payments.length} records (Day 3/5)</p>
+                        <p className="mb-0">{profile.payments?.length || 0} records</p>
                       </div>
                     </div>
+                  </div>
+                  <h6>Recent assessments</h6>
+                  <div className="table-responsive mb-3">
+                    <table className="table table-sm">
+                      <thead><tr><th>Control</th><th>Code</th><th>Due</th><th>Paid</th><th>Status</th></tr></thead>
+                      <tbody>
+                        {(profile.assessments || []).map((a) => (
+                          <tr key={a.id}>
+                            <td>{a.control_number}</td>
+                            <td>{a.revenue_code}</td>
+                            <td>{Number(a.amount_due).toFixed(2)}</td>
+                            <td>{Number(a.amount_paid).toFixed(2)}</td>
+                            <td>{a.status}</td>
+                          </tr>
+                        ))}
+                        {!profile.assessments?.length && <tr><td colSpan="5" className="text-muted">No assessments yet.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                  <h6>Recent payments</h6>
+                  <div className="table-responsive">
+                    <table className="table table-sm">
+                      <thead><tr><th>Ref</th><th>Amount</th><th>Channel</th><th>Status</th></tr></thead>
+                      <tbody>
+                        {(profile.payments || []).map((p) => (
+                          <tr key={p.id}>
+                            <td>{p.external_ref}</td>
+                            <td>{Number(p.amount).toFixed(2)} {p.currency}</td>
+                            <td>{p.channel}</td>
+                            <td>{p.status}</td>
+                          </tr>
+                        ))}
+                        {!profile.payments?.length && <tr><td colSpan="4" className="text-muted">No payments yet.</td></tr>}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
