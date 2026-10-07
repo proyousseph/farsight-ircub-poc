@@ -150,9 +150,9 @@ Progress below follows the **document modules**, independent of the day labels a
 ### Deploy & polish — In progress
 
 - [x] ERD — see [`docs/ERD.md`](docs/ERD.md)
+- [x] OpenAPI/Swagger + Postman — see [`docs/API.md`](docs/API.md), UI at `/docs/api`
 - [ ] Dockerized / Nginx deploy to Contabo
 - [ ] HTTPS demo on `ircub.waagefaal.so`
-- [ ] OpenAPI/Swagger + Postman (or similar)
 - [ ] Broader automated tests + run instructions in README
 - [ ] README final pass
 
@@ -164,6 +164,8 @@ Progress below follows the **document modules**, independent of the day labels a
 |---|---|
 | Technology stack notes | [`docs/STACK.md`](docs/STACK.md) |
 | Entity Relationship Diagram | [`docs/ERD.md`](docs/ERD.md) |
+| API (OpenAPI + Postman) | [`docs/API.md`](docs/API.md) · [`docs/openapi.yaml`](docs/openapi.yaml) |
+| Swagger UI (local) | http://127.0.0.1:8001/docs/api |
 
 ---
 

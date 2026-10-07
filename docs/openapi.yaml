@@ -1,0 +1,1066 @@
+openapi: 3.0.3
+info:
+  title: IRCUB API
+  description: |
+    Integrated Revenue Collection & Utility Billing Platform (POC).
+
+    Authenticate with `POST /api/auth/login`, then pass the returned token as
+    `Authorization: Bearer <token>`. Most routes also require a permission slug
+    (see role seeders).
+
+    Mock external systems are under `/mock-api/*` (no Sanctum).
+  version: 1.0.0
+  contact:
+    name: Yusuf Mohamed Ahmed — Farsight Africa POC
+
+servers:
+  - url: http://127.0.0.1:8001
+    description: Local artisan serve
+  - url: https://ircub.waagefaal.so
+    description: Hosted demo (when deployed)
+
+tags:
+  - name: Auth
+  - name: Payers
+  - name: Revenue
+  - name: Water
+  - name: Channels
+  - name: FMIS
+  - name: Dashboard
+  - name: Mock APIs
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  schemas:
+    ErrorMessage:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@ircub.test
+        password:
+          type: string
+          format: password
+          example: Password@123
+
+    LoginResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        token:
+          type: string
+        token_type:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/AuthUser'
+
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        permissions:
+          type: array
+          items:
+            type: string
+
+    Payer:
+      type: object
+      properties:
+        id: { type: integer }
+        payer_type: { type: string, enum: [INDIVIDUAL, BUSINESS] }
+        tin: { type: string }
+        full_name: { type: string }
+        phone: { type: string }
+        email: { type: string, nullable: true }
+        status: { type: string }
+        duplicate_flagged: { type: boolean }
+
+    Assessment:
+      type: object
+      properties:
+        id: { type: integer }
+        payer_id: { type: integer }
+        revenue_code: { type: string }
+        control_number: { type: string }
+        amount_due: { type: number }
+        amount_paid: { type: number }
+        status: { type: string }
+        period: { type: string }
+
+    Payment:
+      type: object
+      properties:
+        id: { type: integer }
+        payer_id: { type: integer }
+        assessment_id: { type: integer, nullable: true }
+        water_bill_id: { type: integer, nullable: true }
+        revenue_code: { type: string }
+        amount: { type: number }
+        currency: { type: string }
+        channel: { type: string }
+        external_ref: { type: string }
+        status: { type: string }
+        fmis_status: { type: string }
+
+    FmisBatch:
+      type: object
+      properties:
+        id: { type: integer }
+        batch_number: { type: string }
+        journal_date: { type: string, format: date }
+        status: { type: string, enum: [PENDING, POSTED, FAILED, REVERSED] }
+        fmis_reference: { type: string, nullable: true }
+        line_count: { type: integer }
+        total_amount: { type: number }
+
+    DashboardSnapshot:
+      type: object
+      properties:
+        generated_at: { type: string, format: date-time }
+        currency: { type: string }
+        kpis: { type: object }
+        trends: { type: object }
+        targets: { type: object }
+        water: { type: object }
+        forecast: { type: object }
+        alerts:
+          type: array
+          items: { type: object }
+        meta: { type: object }
+
+paths:
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and obtain Bearer token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '422':
+          description: Validation / invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Current authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/AuthUser'
+        '401':
+          description: Unauthenticated
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke current token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out
+
+  /api/health/secure:
+    get:
+      tags: [Auth]
+      summary: Authenticated health check
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+
+  /api/payers:
+    get:
+      tags: [Payers]
+      summary: List / search payers
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: per_page
+          schema: { type: integer, default: 15 }
+      responses:
+        '200':
+          description: Paginated payers
+    post:
+      tags: [Payers]
+      summary: Register payer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payer_type, tin, full_name, phone]
+              properties:
+                payer_type: { type: string, enum: [INDIVIDUAL, BUSINESS] }
+                tin: { type: string }
+                full_name: { type: string }
+                phone: { type: string }
+                email: { type: string }
+                national_id: { type: string }
+                force_create: { type: boolean, description: Bypass duplicate block }
+      responses:
+        '201':
+          description: Created
+        '422':
+          description: Validation / duplicate
+
+  /api/payers/{payer}:
+    get:
+      tags: [Payers]
+      summary: Payer 360° profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: payer
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Profile with assessments, bills, payments, balance
+    put:
+      tags: [Payers]
+      summary: Update payer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: payer
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Updated
+
+  /api/revenue-types:
+    get:
+      tags: [Revenue]
+      summary: List revenue types
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+
+  /api/assessments:
+    get:
+      tags: [Revenue]
+      summary: List assessments (filters supported)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: revenue_code
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: date_from
+          schema: { type: string, format: date }
+        - in: query
+          name: date_to
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Paginated assessments
+    post:
+      tags: [Revenue]
+      summary: Create assessment (control number generated)
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payer_id, revenue_code, amount_due, due_date]
+              properties:
+                payer_id: { type: integer }
+                revenue_code: { type: string }
+                amount_due: { type: number }
+                due_date: { type: string, format: date }
+                period: { type: string }
+      responses:
+        '201':
+          description: Created
+
+  /api/assessments/{assessment}:
+    get:
+      tags: [Revenue]
+      summary: Assessment detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: assessment
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+
+  /api/payments:
+    get:
+      tags: [Revenue]
+      summary: List payments (advanced filters)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: revenue_code
+          schema: { type: string }
+        - in: query
+          name: channel
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: amount_min
+          schema: { type: number }
+        - in: query
+          name: amount_max
+          schema: { type: number }
+        - in: query
+          name: date_from
+          schema: { type: string, format: date }
+        - in: query
+          name: date_to
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Paginated payments
+    post:
+      tags: [Revenue]
+      summary: Capture manual / cash payment
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payer_id, revenue_code, amount, channel, external_ref]
+              properties:
+                payer_id: { type: integer }
+                assessment_id: { type: integer }
+                water_bill_id: { type: integer }
+                revenue_code: { type: string }
+                amount: { type: number }
+                currency: { type: string, default: USD }
+                channel: { type: string }
+                external_ref: { type: string }
+                paid_at: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Created
+
+  /api/payments/upload:
+    post:
+      tags: [Revenue]
+      summary: Bulk payment CSV upload
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Accept/reject summary
+
+  /api/water-accounts:
+    get:
+      tags: [Water]
+      summary: List water accounts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+
+  /api/meter-readings:
+    get:
+      tags: [Water]
+      summary: List meter readings
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Water]
+      summary: Capture meter reading
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [water_account_id, reading_date, reading_value]
+              properties:
+                water_account_id: { type: integer }
+                reading_date: { type: string, format: date }
+                reading_value: { type: number }
+                rollover_flag: { type: boolean }
+                replacement_flag: { type: boolean }
+      responses:
+        '201':
+          description: Created
+        '422':
+          description: Lower reading rejected
+
+  /api/meter-readings/upload:
+    post:
+      tags: [Water]
+      summary: Bulk meter readings CSV
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: Summary
+
+  /api/billing-cycles:
+    get:
+      tags: [Water]
+      summary: List billing cycles
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Water]
+      summary: Run monthly billing cycle
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [period]
+              properties:
+                period: { type: string, example: '2026-10' }
+      responses:
+        '201':
+          description: Cycle created with bills / exceptions
+
+  /api/billing-cycles/{billingCycle}:
+    get:
+      tags: [Water]
+      summary: Billing cycle detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: billingCycle
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+
+  /api/water-bills:
+    get:
+      tags: [Water]
+      summary: List water bills
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+
+  /api/water-bills/statement:
+    get:
+      tags: [Water]
+      summary: Customer statement (bills, payments, running balance)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: payer_id
+          schema: { type: integer }
+        - in: query
+          name: water_account_id
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Statement rows
+
+  /api/water-bills/{waterBill}:
+    get:
+      tags: [Water]
+      summary: Water bill detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: waterBill
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+
+  /api/water-bills/{waterBill}/release:
+    post:
+      tags: [Water]
+      summary: Release held/abnormal bill (PDF + mock SMS)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: waterBill
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Released
+
+  /api/water-bills/{waterBill}/pdf:
+    get:
+      tags: [Water]
+      summary: Download bill PDF
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: waterBill
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: PDF binary
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /api/channel/rates:
+    get:
+      tags: [Channels]
+      summary: Fetch FX rate (via mock rates API)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: quote
+          schema: { type: string, example: SOS }
+      responses:
+        '200':
+          description: Rate snapshot
+
+  /api/channel/payments:
+    get:
+      tags: [Channels]
+      summary: List channel payment attempts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Channels]
+      summary: Initiate bank / mobile money payment
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payer_id: { type: integer }
+                assessment_id: { type: integer }
+                water_bill_id: { type: integer }
+                provider: { type: string, enum: [BANK, MOBILE_MONEY] }
+                amount: { type: number }
+                currency: { type: string }
+      responses:
+        '201':
+          description: Initiated
+
+  /api/channel/payments/{channelPayment}:
+    get:
+      tags: [Channels]
+      summary: Channel payment detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelPayment
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+
+  /api/channel/payments/{channelPayment}/check:
+    post:
+      tags: [Channels]
+      summary: Manual status check / retry step
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelPayment
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Updated status
+
+  /api/channel/callback:
+    post:
+      tags: [Channels]
+      summary: Provider callback (HMAC verified, public)
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Acknowledged
+
+  /api/channel/retries:
+    post:
+      tags: [Channels]
+      summary: Process due channel retries
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Retry batch result
+
+  /api/channel/notifications:
+    get:
+      tags: [Channels]
+      summary: Supervisor notifications (permanent failures)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+
+  /api/channel/reconciliation:
+    get:
+      tags: [Channels]
+      summary: List channel reconciliation runs
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Channels]
+      summary: Run daily channel reconciliation vs mock statement
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                statement_date: { type: string, format: date }
+                channel: { type: string }
+      responses:
+        '201':
+          description: Run created
+
+  /api/channel/reconciliation/{reconciliationRun}:
+    get:
+      tags: [Channels]
+      summary: Reconciliation run with items
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: reconciliationRun
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+
+  /api/gl-mappings:
+    get:
+      tags: [FMIS]
+      summary: List revenue → GL mappings
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [FMIS]
+      summary: Create GL mapping
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revenue_code, gl_code]
+              properties:
+                revenue_code: { type: string }
+                gl_code: { type: string }
+                description: { type: string }
+                is_active: { type: boolean }
+      responses:
+        '201':
+          description: Created
+
+  /api/gl-mappings/{glMapping}:
+    put:
+      tags: [FMIS]
+      summary: Update GL mapping
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: glMapping
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Updated
+
+  /api/fmis/batches:
+    get:
+      tags: [FMIS]
+      summary: List FMIS journal batches
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Paginated batches
+    post:
+      tags: [FMIS]
+      summary: Create daily journal batch (optionally post immediately)
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [journal_date]
+              properties:
+                journal_date: { type: string, format: date }
+                post_immediately: { type: boolean, default: false }
+      responses:
+        '201':
+          description: Batch created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  batch:
+                    $ref: '#/components/schemas/FmisBatch'
+        '422':
+          description: No unposted payments / already posted
+
+  /api/fmis/batches/{fmisJournalBatch}:
+    get:
+      tags: [FMIS]
+      summary: Batch detail with lines
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: fmisJournalBatch
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+
+  /api/fmis/batches/{fmisJournalBatch}/post:
+    post:
+      tags: [FMIS]
+      summary: Post PENDING batch to mock FMIS
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: fmisJournalBatch
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Posted
+        '422':
+          description: Already posted / double-post blocked
+
+  /api/fmis/batches/{fmisJournalBatch}/reverse:
+    post:
+      tags: [FMIS]
+      summary: Reverse POSTED batch
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: fmisJournalBatch
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Reversed
+
+  /api/fmis/reconciliation:
+    get:
+      tags: [FMIS]
+      summary: IRCUB vs FMIS reconciliation by GL / day
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: date
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Summary + drill-down rows
+
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Executive dashboard snapshot
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: cache_ttl
+          schema: { type: integer, default: 30 }
+      responses:
+        '200':
+          description: KPIs, trends, targets, water, OLS forecast, alerts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSnapshot'
+
+  /api/dashboard/alerts:
+    get:
+      tags: [Dashboard]
+      summary: Lightweight alerts poll endpoint
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Alerts + KPIs
+
+  /api/dashboard/refresh:
+    post:
+      tags: [Dashboard]
+      summary: Rebuild daily aggregates from payments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Aggregates rebuilt + fresh snapshot
+
+  /mock-api/rates:
+    get:
+      tags: [Mock APIs]
+      summary: Mock FX rates
+      security: []
+      parameters:
+        - in: query
+          name: quote
+          schema: { type: string, example: SOS }
+      responses:
+        '200':
+          description: Rate
+
+  /mock-api/payments:
+    post:
+      tags: [Mock APIs]
+      summary: Mock initiate payment
+      security: []
+      responses:
+        '201':
+          description: Provider txn created
+
+  /mock-api/payments/{providerTxnId}:
+    get:
+      tags: [Mock APIs]
+      summary: Mock payment status
+      security: []
+      parameters:
+        - name: providerTxnId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Status
+
+  /mock-api/statements:
+    post:
+      tags: [Mock APIs]
+      summary: Mock channel statement file
+      security: []
+      responses:
+        '200':
+          description: Statement rows
+
+  /mock-api/fmis/journals:
+    get:
+      tags: [Mock APIs]
+      summary: Mock FMIS journals by date
+      security: []
+      parameters:
+        - in: query
+          name: date
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Batches + totals_by_gl
+    post:
+      tags: [Mock APIs]
+      summary: Mock FMIS post journal
+      security: []
+      responses:
+        '201':
+          description: Posted with fmis_reference
+        '422':
+          description: Rejected (e.g. FAILME marker)
+
+  /mock-api/fmis/journals/reverse:
+    post:
+      tags: [Mock APIs]
+      summary: Mock FMIS reverse journal
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [batch_number, journal_date]
+              properties:
+                batch_number: { type: string }
+                journal_date: { type: string, format: date }
+      responses:
+        '200':
+          description: Reversed
