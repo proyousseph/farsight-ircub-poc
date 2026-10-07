@@ -32,10 +32,36 @@ services:
       timeout: 5s
       retries: 5
 
-  # Backend / frontend app containers will be wired after Dockerfiles are added.
-  # For now, Postgres + Redis are enough for local development with
-  # `php artisan serve` and `npm run dev` on the host.
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: ircub-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: ircub-redis-insight
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - redis_insight_data:/data
 
 volumes:
   postgres_data:
   redis_data:
+  pgadmin_data:
+  redis_insight_data:

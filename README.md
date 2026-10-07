@@ -99,6 +99,22 @@ docker compose up -d
 |---|---|---|
 | PostgreSQL | **5433** | Mapped away from local Postgres on 5432 |
 | Redis | **6379** | Cache, queues, sessions |
+| pgAdmin | **5050** | Browse Postgres — http://localhost:5050 |
+| Redis Insight | **5540** | Browse Redis — http://localhost:5540 |
+
+**pgAdmin login:** `admin@example.com` / `admin123`  
+
+When adding a Postgres server in pgAdmin use:
+
+| Field | Value |
+|---|---|
+| Host | `postgres` (Docker service name) |
+| Port | `5432` |
+| Database | `ircub` |
+| Username | `ircub` |
+| Password | `ircub_secret` |
+
+In Redis Insight, add database host `redis`, port `6379`.
 
 ### 2. Backend API
 
