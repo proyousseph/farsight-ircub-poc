@@ -40,6 +40,9 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'View water bills', 'slug' => 'bills.view', 'module' => 'water'],
             ['name' => 'View own water bills', 'slug' => 'bills.view_own', 'module' => 'water'],
 
+            // Channels
+            ['name' => 'Run channel reconciliation', 'slug' => 'channels.reconcile', 'module' => 'channels'],
+
             // Audit / reports / FMIS
             ['name' => 'View audit logs', 'slug' => 'audit.view', 'module' => 'audit'],
             ['name' => 'View reports', 'slug' => 'reports.view', 'module' => 'reports'],
@@ -73,6 +76,7 @@ class RolePermissionSeeder extends Seeder
                     'revenue_types.manage',
                     'reports.view',
                     'dashboard.view',
+                    'channels.reconcile',
                     'fmis.post',
                     'fmis.reconcile',
                     'audit.view',
@@ -115,6 +119,7 @@ class RolePermissionSeeder extends Seeder
                     'audit.view',
                     'reports.view',
                     'dashboard.view',
+                    'channels.reconcile',
                     'fmis.reconcile',
                 ],
             ],

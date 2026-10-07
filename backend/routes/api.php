@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingCycleController;
+use App\Http\Controllers\Api\ChannelPaymentController;
+use App\Http\Controllers\Api\ChannelReconciliationController;
 use App\Http\Controllers\Api\MeterReadingController;
 use App\Http\Controllers\Api\PayerController;
 use App\Http\Controllers\Api\PaymentController;
@@ -10,6 +12,9 @@ use App\Http\Controllers\Api\RevenueTypeController;
 use App\Http\Controllers\Api\WaterAccountController;
 use App\Http\Controllers\Api\WaterBillController;
 use Illuminate\Support\Facades\Route;
+
+// Public channel callback (HMAC verified inside controller).
+Route::post('channel/callback', [ChannelPaymentController::class, 'callback']);
 
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -81,4 +86,27 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:billing.run');
     Route::get('water-bills/{waterBill}/pdf', [WaterBillController::class, 'pdf'])
         ->middleware('permission:bills.view|bills.view_own');
+
+    // Day 5 — Payment channel integration
+    Route::get('channel/rates', [ChannelPaymentController::class, 'rates'])
+        ->middleware('permission:payments.capture|payments.view');
+    Route::get('channel/payments', [ChannelPaymentController::class, 'index'])
+        ->middleware('permission:payments.view');
+    Route::post('channel/payments', [ChannelPaymentController::class, 'store'])
+        ->middleware('permission:payments.capture');
+    Route::get('channel/payments/{channelPayment}', [ChannelPaymentController::class, 'show'])
+        ->middleware('permission:payments.view');
+    Route::post('channel/payments/{channelPayment}/check', [ChannelPaymentController::class, 'check'])
+        ->middleware('permission:payments.capture|payments.approve_reversal');
+    Route::post('channel/retries', [ChannelPaymentController::class, 'retryDue'])
+        ->middleware('permission:payments.approve_reversal|payments.capture');
+    Route::get('channel/notifications', [ChannelPaymentController::class, 'notifications'])
+        ->middleware('permission:payments.approve_reversal|audit.view');
+
+    Route::get('channel/reconciliation', [ChannelReconciliationController::class, 'index'])
+        ->middleware('permission:channels.reconcile|fmis.reconcile');
+    Route::post('channel/reconciliation', [ChannelReconciliationController::class, 'store'])
+        ->middleware('permission:channels.reconcile|fmis.reconcile');
+    Route::get('channel/reconciliation/{reconciliationRun}', [ChannelReconciliationController::class, 'show'])
+        ->middleware('permission:channels.reconcile|fmis.reconcile');
 });
