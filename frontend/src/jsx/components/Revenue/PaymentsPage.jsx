@@ -4,6 +4,8 @@ import { listPayers } from '../../../services/PayerService';
 import { createPayment, listAssessments, listPayments, listRevenueTypes, uploadPaymentsCsv } from '../../../services/RevenueService';
 import { hasPermission } from '../../../services/AuthService';
 
+const PAYMENTS_CSV_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/payments-upload-sample.csv`;
+
 const PaymentsPage = () => {
   const [items, setItems] = useState([]);
   const [meta, setMeta] = useState(null);
@@ -12,6 +14,12 @@ const PaymentsPage = () => {
   const [types, setTypes] = useState([]);
   const [q, setQ] = useState('');
   const [channel, setChannel] = useState('');
+  const [revenueCode, setRevenueCode] = useState('');
+  const [status, setStatus] = useState('');
+  const [amountMin, setAmountMin] = useState('');
+  const [amountMax, setAmountMax] = useState('');
+  const [paidFrom, setPaidFrom] = useState('');
+  const [paidTo, setPaidTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [uploadResult, setUploadResult] = useState(null);
@@ -27,13 +35,29 @@ const PaymentsPage = () => {
     notes: '',
   });
 
-  const load = async (page = 1) => {
+  const load = async (page = 1, filters = null) => {
+    const f = filters || {
+      q,
+      channel,
+      revenue_code: revenueCode,
+      status,
+      amount_min: amountMin,
+      amount_max: amountMax,
+      paid_from: paidFrom,
+      paid_to: paidTo,
+    };
     setLoading(true);
     setError('');
     try {
       const { data } = await listPayments({
-        q: q || undefined,
-        channel: channel || undefined,
+        q: f.q || undefined,
+        channel: f.channel || undefined,
+        revenue_code: f.revenue_code || undefined,
+        status: f.status || undefined,
+        amount_min: f.amount_min || undefined,
+        amount_max: f.amount_max || undefined,
+        paid_from: f.paid_from || undefined,
+        paid_to: f.paid_to || undefined,
         page,
         per_page: 15,
       });
@@ -162,8 +186,16 @@ const PaymentsPage = () => {
                 <hr />
                 <h6>Bulk CSV upload</h6>
                 <p className="small text-muted mb-2">
-                  Columns: payer_tin,revenue_code,amount,channel,external_ref,control_number(optional)
+                  Required columns: payer_tin, revenue_code, amount, channel, external_ref. Optional: control_number, currency, paid_at.
+                  Channel must be BANK, MOBILE_MONEY, or CASH. Use a unique external_ref for each row.
                 </p>
+                <a
+                  className="btn btn-outline-secondary btn-sm mb-2"
+                  href={PAYMENTS_CSV_SAMPLE_URL}
+                  download="payments-upload-sample.csv"
+                >
+                  Download sample CSV
+                </a>
                 <input type="file" accept=".csv,text/csv" className="form-control" onChange={onUpload} />
               </div>
             </div>
@@ -175,10 +207,18 @@ const PaymentsPage = () => {
             <div className="card-header"><h4 className="card-title">Payments</h4></div>
             <div className="card-body">
               <div className="row g-2 mb-3">
-                <div className="col-md-6">
+                <div className="col-md-4">
                   <input className="form-control" placeholder="Search ref, TIN, name..." value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
                 </div>
-                <div className="col-md-3">
+                <div className="col-md-2">
+                  <select className="form-control" value={revenueCode} onChange={(e) => setRevenueCode(e.target.value)}>
+                    <option value="">All revenue types</option>
+                    {types.map((t) => (
+                      <option key={t.id} value={t.revenue_code}>{t.revenue_code}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-2">
                   <select className="form-control" value={channel} onChange={(e) => setChannel(e.target.value)}>
                     <option value="">All channels</option>
                     <option value="MOBILE_MONEY">MOBILE_MONEY</option>
@@ -186,8 +226,57 @@ const PaymentsPage = () => {
                     <option value="CASH">CASH</option>
                   </select>
                 </div>
+                <div className="col-md-2">
+                  <select className="form-control" value={status} onChange={(e) => setStatus(e.target.value)}>
+                    <option value="">All statuses</option>
+                    <option value="SUCCESS">SUCCESS</option>
+                    <option value="FAILED">FAILED</option>
+                    <option value="PENDING">PENDING</option>
+                  </select>
+                </div>
+                <div className="col-md-2">
+                  <input type="number" className="form-control" placeholder="Min amount" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} />
+                </div>
+                <div className="col-md-2">
+                  <input type="number" className="form-control" placeholder="Max amount" value={amountMax} onChange={(e) => setAmountMax(e.target.value)} />
+                </div>
                 <div className="col-md-3">
-                  <button className="btn btn-outline-primary w-100" onClick={() => load()}>Search</button>
+                  <input type="date" className="form-control" value={paidFrom} onChange={(e) => setPaidFrom(e.target.value)} title="Paid from" />
+                </div>
+                <div className="col-md-3">
+                  <input type="date" className="form-control" value={paidTo} onChange={(e) => setPaidTo(e.target.value)} title="Paid to" />
+                </div>
+                <div className="col-md-2">
+                  <button className="btn btn-outline-primary w-100" onClick={() => load()}>Apply filters</button>
+                </div>
+                <div className="col-md-2">
+                  <button
+                    className="btn btn-outline-secondary w-100"
+                    type="button"
+                    onClick={() => {
+                      const cleared = {
+                        q: '',
+                        channel: '',
+                        revenue_code: '',
+                        status: '',
+                        amount_min: '',
+                        amount_max: '',
+                        paid_from: '',
+                        paid_to: '',
+                      };
+                      setQ('');
+                      setChannel('');
+                      setRevenueCode('');
+                      setStatus('');
+                      setAmountMin('');
+                      setAmountMax('');
+                      setPaidFrom('');
+                      setPaidTo('');
+                      load(1, cleared);
+                    }}
+                  >
+                    Clear
+                  </button>
                 </div>
               </div>
 

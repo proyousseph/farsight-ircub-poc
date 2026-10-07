@@ -11,6 +11,11 @@ const AssessmentsPage = () => {
   const [types, setTypes] = useState([]);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
+  const [revenueCode, setRevenueCode] = useState('');
+  const [amountMin, setAmountMin] = useState('');
+  const [amountMax, setAmountMax] = useState('');
+  const [dueFrom, setDueFrom] = useState('');
+  const [dueTo, setDueTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -24,13 +29,27 @@ const AssessmentsPage = () => {
     notes: '',
   });
 
-  const load = async (page = 1) => {
+  const load = async (page = 1, filters = null) => {
+    const f = filters || {
+      q,
+      status,
+      revenue_code: revenueCode,
+      amount_min: amountMin,
+      amount_max: amountMax,
+      due_from: dueFrom,
+      due_to: dueTo,
+    };
     setLoading(true);
     setError('');
     try {
       const { data } = await listAssessments({
-        q: q || undefined,
-        status: status || undefined,
+        q: f.q || undefined,
+        status: f.status || undefined,
+        revenue_code: f.revenue_code || undefined,
+        amount_min: f.amount_min || undefined,
+        amount_max: f.amount_max || undefined,
+        due_from: f.due_from || undefined,
+        due_to: f.due_to || undefined,
         page,
         per_page: 15,
       });
@@ -136,10 +155,18 @@ const AssessmentsPage = () => {
             </div>
             <div className="card-body">
               <div className="row g-2 mb-3">
-                <div className="col-md-6">
+                <div className="col-md-4">
                   <input className="form-control" placeholder="Search control no, TIN, name..." value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
                 </div>
-                <div className="col-md-3">
+                <div className="col-md-2">
+                  <select className="form-control" value={revenueCode} onChange={(e) => setRevenueCode(e.target.value)}>
+                    <option value="">All revenue types</option>
+                    {types.map((t) => (
+                      <option key={t.id} value={t.revenue_code}>{t.revenue_code}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-2">
                   <select className="form-control" value={status} onChange={(e) => setStatus(e.target.value)}>
                     <option value="">All statuses</option>
                     <option value="OPEN">OPEN</option>
@@ -148,8 +175,47 @@ const AssessmentsPage = () => {
                     <option value="REVERSED">REVERSED</option>
                   </select>
                 </div>
+                <div className="col-md-2">
+                  <input type="number" className="form-control" placeholder="Min amount" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} />
+                </div>
+                <div className="col-md-2">
+                  <input type="number" className="form-control" placeholder="Max amount" value={amountMax} onChange={(e) => setAmountMax(e.target.value)} />
+                </div>
                 <div className="col-md-3">
-                  <button className="btn btn-outline-primary w-100" onClick={() => load()}>Search</button>
+                  <input type="date" className="form-control" value={dueFrom} onChange={(e) => setDueFrom(e.target.value)} title="Due from" />
+                </div>
+                <div className="col-md-3">
+                  <input type="date" className="form-control" value={dueTo} onChange={(e) => setDueTo(e.target.value)} title="Due to" />
+                </div>
+                <div className="col-md-3">
+                  <button className="btn btn-outline-primary w-100" onClick={() => load()}>Apply filters</button>
+                </div>
+                <div className="col-md-3">
+                  <button
+                    className="btn btn-outline-secondary w-100"
+                    type="button"
+                    onClick={() => {
+                      const cleared = {
+                        q: '',
+                        status: '',
+                        revenue_code: '',
+                        amount_min: '',
+                        amount_max: '',
+                        due_from: '',
+                        due_to: '',
+                      };
+                      setQ('');
+                      setStatus('');
+                      setRevenueCode('');
+                      setAmountMin('');
+                      setAmountMax('');
+                      setDueFrom('');
+                      setDueTo('');
+                      load(1, cleared);
+                    }}
+                  >
+                    Clear
+                  </button>
                 </div>
               </div>
 

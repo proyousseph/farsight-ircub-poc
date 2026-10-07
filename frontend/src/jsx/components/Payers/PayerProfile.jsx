@@ -72,7 +72,7 @@ const PayerProfile = () => {
               <h5 className="mb-3">Balance snapshot</h5>
               <h2 className="text-primary">${Number(profile.balance || 0).toFixed(2)}</h2>
               <small className="text-muted">
-                Assessments/bills/payments will populate this in later modules.
+                Outstanding balance from open tax assessments (water bills added in Day 4).
               </small>
             </div>
           </div>

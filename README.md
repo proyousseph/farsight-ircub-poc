@@ -83,8 +83,9 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 - [x] Assessments with unique control numbers
 - [x] Payment capture linked to assessments
 - [x] CSV bulk payment upload with accept/reject summary
-- [x] Audit logs for create/update/upload actions
-- [x] Filters on assessments and payments
+- [x] Downloadable sample CSV for bulk payment upload
+- [x] Audit logs for create/update/upload actions (before/after values)
+- [x] Advanced filters (payer/search, revenue type, amount range, channel, status, date range)
 - [x] Frontend Assessments + Payments pages
 - [x] Payer 360° profile shows assessments/payments/balance
 
