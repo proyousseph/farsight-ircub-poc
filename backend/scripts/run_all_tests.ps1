@@ -4,8 +4,12 @@
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
-Write-Host "=== 1) PHPUnit (sqlite in-memory) ===" -ForegroundColor Cyan
+Write-Host "=== 1) PHPUnit (sqlite in-memory) — auth, security, performance, modules ===" -ForegroundColor Cyan
 php artisan test
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "`n=== 1b) Security + TOTP focus ===" -ForegroundColor Cyan
+php artisan test --filter="SecurityHardeningTest|CookieAuthAndTotpTest|TotpTest"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "`n=== 2) Module smoke scripts (uses .env Postgres/Redis) ===" -ForegroundColor Cyan

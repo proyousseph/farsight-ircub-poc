@@ -10,7 +10,9 @@ Scope: **Modules 1–7** (POC brief calendar window: 5 working days)
 | Repository | https://github.com/proyousseph/farsight-ircub-poc |
 | Demo (planned) | https://ircub.waagefaal.so |
 
-> Demo subdomain DNS already points to the Contabo VPS (`161.97.90.92`). **Next:** Dockerized app + Nginx HTTPS deploy to Contabo.
+> Demo subdomain DNS already points to the Contabo VPS (`161.97.90.92`).  
+> **Docker:** infra always available; full app stack via `docker compose --profile app`.  
+> **Next for Contabo:** point Nginx/TLS at the `web` service (or host `:8080`) with a production `APP_KEY` + secrets.
 
 ---
 
@@ -45,12 +47,15 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 
 ```text
 .
-├── frontend/            # Dompet React + Vite admin UI
-├── backend/             # Laravel API
-├── docker/              # Nginx / deploy configs (to be expanded)
-├── docs/                # STACK.md, ERD.md
-├── scripts/             # Helper scripts
-├── docker-compose.yml   # Postgres + Redis (+ pgAdmin / Redis Insight)
+├── frontend/              # React + Vite admin UI (IRCUB routes)
+├── backend/               # Laravel API + PHPUnit + smoke scripts
+├── docker/
+│   ├── backend/           # API Dockerfile + entrypoint
+│   ├── frontend/          # SPA Nginx Dockerfile + reverse-proxy conf
+│   ├── .env.app.example   # Env for --profile app
+│   └── .env.app           # Local docker app env (gitignored if present)
+├── docs/                  # STACK, ERD, API, TESTING
+├── docker-compose.yml     # Postgres/Redis (+ optional full app profile)
 └── README.md
 ```
 
@@ -68,16 +73,18 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 - [x] Six system roles seeded with permissions
 - [x] Hierarchical roles (`parent_id` / `level`; child permissions ⊆ parent)
 - [x] System configuration API + UI (`config.manage` — password, 2FA, water threshold, channel retries)
-- [x] Sanctum auth API: login / logout / me
+- [x] Sanctum auth API: login / logout / me / change password
+- [x] HttpOnly cookie auth (`ircub_token`) + Bearer header (same-site with Vite/`web`)
 - [x] Password policy (min 10 + upper/lower/number/symbol) on user create/update (admin-tunable)
-- [x] Optional 2FA stub (demo OTP `123456`; enabled on `auditor@ircub.test`)
+- [x] Optional 2FA: **TOTP** setup/confirm/disable; local stub OTP `123456` only when `IRCUB_2FA_ALLOW_STUB=true`
+- [x] Security middleware: active-user check, must-change-password gate, security headers, login throttle
 - [x] Users & Roles admin API + UI (custom roles, activate/deactivate users)
 - [x] Payment reversal segregation of duties (request ≠ approve)
 - [x] Audit log browser API + UI
-- [x] Taxpayer self-service scoped to linked `payer_id`
-- [x] Permission middleware
+- [x] Taxpayer self-service scoped to linked `payer_id` (**no** `payments.capture`)
+- [x] Permission middleware + frontend `RequirePermission` route guards
 - [x] Dompet login wired to Laravel API
-- [x] Role-based sidebar menus (IRCUB routes only — unused Dompet demo pages removed from the live app)
+- [x] Role-based sidebar menus (IRCUB routes only)
 
 ### Module 2 — Taxpayer & Customer Registry — Done
 
@@ -145,10 +152,11 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 
 - [x] ERD — see [`docs/ERD.md`](docs/ERD.md)
 - [x] OpenAPI/Swagger + Postman — see [`docs/API.md`](docs/API.md), UI at `/docs/api`
-- [x] Automated tests (PHPUnit + module smoke scripts) — see [Testing](#testing)
-- [x] README pass for Module 1 polish gaps (SoD, 2FA stub, admin/audit/self-service)
-- [ ] Dockerized / Nginx deploy to Contabo
-- [ ] HTTPS demo on `ircub.waagefaal.so`
+- [x] Automated tests (PHPUnit + module smoke scripts + security/TOTP/performance) — see [Testing](#testing)
+- [x] Security hardening (headers, throttle, cookie auth, TOTP, taxpayer scope)
+- [x] Performance hardening (indexes, queues, scheduler, cache meta, lazy UI)
+- [x] Docker Compose **full app profile** (`api` + `queue` + `scheduler` + `web` on `:8080`)
+- [ ] Contabo VPS deploy + HTTPS on `ircub.waagefaal.so`
 
 ---
 
@@ -173,7 +181,7 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 - Composer
 - Node.js 20+ / npm
 
-### 1. Start infrastructure
+### 1. Start infrastructure (Postgres + Redis)
 
 ```bash
 docker compose up -d
@@ -188,19 +196,9 @@ docker compose up -d
 
 **pgAdmin login:** `admin@example.com` / `admin123`
 
-When adding a Postgres server in pgAdmin:
+When adding a Postgres server in pgAdmin: host `postgres`, port `5432`, db/user/pass `ircub` / `ircub` / `ircub_secret`.
 
-| Field | Value |
-|---|---|
-| Host | `postgres` (Docker service name) |
-| Port | `5432` |
-| Database | `ircub` |
-| Username | `ircub` |
-| Password | `ircub_secret` |
-
-In Redis Insight, add database host `redis`, port `6379`.
-
-### 2. Backend API
+### 2. Backend API (local PHP)
 
 ```bash
 cd backend
@@ -211,9 +209,10 @@ php artisan migrate:fresh --seed
 php artisan serve --host=127.0.0.1 --port=8001
 ```
 
-API base URL: `http://127.0.0.1:8001/api`
+API base URL: `http://127.0.0.1:8001/api`  
+Also start workers for queues/scheduler (see [Performance notes](#performance-notes-poc-scale)).
 
-### 3. Frontend
+### 3. Frontend (local Vite)
 
 ```bash
 cd frontend
@@ -222,17 +221,42 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`).
+Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`, so the HttpOnly auth cookie stays same-site with the API host you configure in `.env`).
+
+### 4. Full stack in Docker (optional)
+
+Builds API + Redis queue worker + scheduler + Nginx SPA (proxies `/api`).
+
+```bash
+# From Project/
+cp docker/.env.app.example docker/.env.app
+# Set a stable APP_KEY in docker/.env.app (php artisan key:generate --show)
+docker compose --profile app up -d --build
+```
+
+| URL | Service |
+|---|---|
+| http://localhost:8080 | UI + `/api` proxy (`web`) |
+| http://localhost:8080/api | Laravel API |
+| http://localhost:8080/docs/api | Swagger (when `IRCUB_DOCS_ENABLED=true`) |
+
+Containers: `ircub-api`, `ircub-queue`, `ircub-scheduler`, `ircub-web` (+ postgres/redis).
+
+Stop app profile only:
+
+```bash
+docker compose --profile app down
+```
 
 ---
 
 ## Testing
 
-Two layers of automated checks are included.
+Details: [`docs/TESTING.md`](docs/TESTING.md).
 
 ### A) PHPUnit (isolated, no Docker required)
 
-Uses an in-memory SQLite database (`phpunit.xml`). Covers auth, payers, FMIS post/reverse/recon, dashboard forecast/alerts, and API docs routes.
+Uses in-memory SQLite (`phpunit.xml`). Covers auth, **cookie auth + TOTP**, **security hardening**, **performance**, payers, FMIS, dashboard, gaps, API docs.
 
 ```bash
 cd backend
@@ -240,24 +264,23 @@ composer install
 php artisan test
 ```
 
-Or:
+Focused suites:
 
 ```bash
-cd backend
-composer test
+php artisan test --filter="SecurityHardeningTest|CookieAuthAndTotpTest|TotpTest"
+php artisan test --filter=PerformanceHardeningTest
 ```
 
-**Last run:** 20 tests, 99 assertions — all passed.
+**Last run:** **36 tests, 162 assertions — all passed.**
 
 ### B) Module smoke scripts (needs Postgres + Redis)
 
-These hit the real local `.env` database (start Docker first: `docker compose up -d`).
-
 ```bash
+docker compose up -d   # if not already running
 cd backend
 php scripts/verify_module5.php   # channel FX / callback / retries / recon
 php scripts/verify_module6.php   # FMIS posting / reverse / recon
-php scripts/verify_module7.php   # dashboard aggregates / OLS / alerts
+php scripts/verify_module7.php   # dashboard aggregates / OLS / alerts / cache
 php scripts/verify_gaps.php      # SoD reversals, 2FA flag, taxpayer link
 ```
 
@@ -285,14 +308,14 @@ bash scripts/run_all_tests.sh
 
 Password for all accounts: **`Password@123`**
 
-| Role | Email |
-|---|---|
-| System Administrator | `admin@ircub.test` |
-| Revenue Supervisor | `supervisor@ircub.test` |
-| Revenue Officer | `officer@ircub.test` |
-| Water Billing Officer | `water@ircub.test` |
-| Auditor | `auditor@ircub.test` |
-| Taxpayer / Customer | `taxpayer@ircub.test` |
+| Role | Email | Notes |
+|---|---|---|
+| System Administrator | `admin@ircub.test` | Full access |
+| Revenue Supervisor | `supervisor@ircub.test` | Approvals, FMIS, dashboard |
+| Revenue Officer | `officer@ircub.test` | Assessments & payments |
+| Water Billing Officer | `water@ircub.test` | Metering & bills |
+| Auditor | `auditor@ircub.test` | Optional 2FA (TOTP or local stub) |
+| Taxpayer / Customer | `taxpayer@ircub.test` | Own bills/assessments only (no capture) |
 
 ---
 
@@ -300,17 +323,28 @@ Password for all accounts: **`Password@123`**
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `POST` | `/api/auth/login` | No | Returns Bearer token + user roles/permissions |
-| `GET` | `/api/auth/me` | Bearer | Current user profile |
-| `POST` | `/api/auth/logout` | Bearer | Revoke current token |
+| `POST` | `/api/auth/login` | No (throttled) | Bearer token **and** HttpOnly `ircub_token` cookie |
+| `GET` | `/api/auth/me` | Bearer **or** cookie | Current user profile |
+| `POST` | `/api/auth/logout` | Yes | Revoke token + expire cookie |
+| `PUT` | `/api/auth/password` | Yes | Change password / clear must-change flag |
+| `POST` | `/api/auth/2fa/setup` | Yes | Generate TOTP secret + `otpauth://` URL |
+| `POST` | `/api/auth/2fa/confirm` | Yes | Confirm TOTP with a code |
+| `POST` | `/api/auth/2fa/disable` | Yes | Disable 2FA |
 
 Example login:
 
 ```bash
-curl -X POST http://127.0.0.1:8001/api/auth/login \
+curl -X POST http://localhost:8001/api/auth/login \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
+  -c cookies.txt \
   -d "{\"email\":\"admin@ircub.test\",\"password\":\"Password@123\"}"
+```
+
+Cookie-only session check:
+
+```bash
+curl http://localhost:8001/api/auth/me -b cookies.txt -H "Accept: application/json"
 ```
 
 ---
@@ -388,6 +422,21 @@ Channel retries API: `POST /api/channel/retries` queues on Redis, or processes i
 
 ---
 
+## Security notes (POC)
+
+| Control | Behaviour |
+|---|---|
+| Auth cookie | HttpOnly `ircub_token` (plus Bearer for APIs/tools) |
+| Active users | Deactivated accounts lose token access (`active` middleware) |
+| Password gate | `must_change_password` blocks business APIs until password change |
+| Taxpayer | No payment capture; own-scope on bills/assessments |
+| Channel callback | HMAC + throttle; empty identifiers rejected |
+| Headers | `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, … |
+| Mocks / docs | `/mock-api` and Swagger limited to local/testing unless enabled |
+| Login throttle | `10/min` on `/api/auth/login` |
+
+---
+
 ## Assumptions & limitations
 
 - The brief allows a short take-home window; work is organized and named by **module**, not by calendar day.
@@ -396,9 +445,9 @@ Channel retries API: `POST /api/channel/retries` queues on Redis, or processes i
 - Dashboard forecast uses OLS on monthly totals (transparent POC model); not a production time-series suite.
 - Dashboard “real-time” updates use short-interval polling rather than WebSockets.
 - Only sandbox / test data is used — no real personal, taxpayer, or financial data.
-- Optional 2FA is a **stub** (shared demo OTP), not a production TOTP/SMS product.
-- Live frontend routes are IRCUB-only; unused Dompet template page sources were removed from the tree.
-- Local `docker-compose.yml` currently runs Postgres + Redis. Full app containers + HTTPS on Contabo remain the last deploy item.
+- **TOTP** is the real 2FA path; stub OTP `123456` is **local/testing only** (`IRCUB_2FA_ALLOW_STUB`).
+- Live frontend routes are IRCUB-only.
+- Docker `--profile app` serves the full stack on `:8080`; Contabo HTTPS TLS termination is still the final deploy step.
 - Bill notifications are queued (`NotifyWaterBillJob`); with `QUEUE_CONNECTION=sync` they still run inline for tests/demo.
 
 ---

@@ -60,6 +60,146 @@ services:
     volumes:
       - redis_insight_data:/data
 
+  # -------------------------------------------------------------------------
+  # Full app stack (API + queue + scheduler + Nginx SPA)
+  # Usage:  docker compose --profile app up -d --build
+  # UI:     http://localhost:8080
+  # -------------------------------------------------------------------------
+  api:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: ircub-api
+    restart: unless-stopped
+    env_file:
+      - path: docker/.env.app
+        required: false
+    environment:
+      APP_NAME: ${APP_NAME:-IRCUB}
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      APP_KEY: ${APP_KEY:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:8080,127.0.0.1:8080}
+      SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-false}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ircub
+      DB_USERNAME: ircub
+      DB_PASSWORD: ircub_secret
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-ircub-docker-callback-secret-change-me}
+      CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-true}
+      CHANNEL_MOCK_BASE_URL: http://api:8000/mock-api
+      IRCUB_2FA_ENABLED: ${IRCUB_2FA_ENABLED:-true}
+      IRCUB_2FA_ALLOW_STUB: ${IRCUB_2FA_ALLOW_STUB:-true}
+      IRCUB_DEMO_OTP: ${IRCUB_DEMO_OTP:-123456}
+      IRCUB_DOCS_ENABLED: ${IRCUB_DOCS_ENABLED:-true}
+      IRCUB_SEED_ON_BOOT: ${IRCUB_SEED_ON_BOOT:-true}
+      IRCUB_RUN_MIGRATIONS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  queue:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: ircub-queue
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "redis", "--sleep=1", "--tries=2", "--queue=channels,fmis,notifications,dashboard,default"]
+    env_file:
+      - path: docker/.env.app
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_KEY: ${APP_KEY:-}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ircub
+      DB_USERNAME: ircub
+      DB_PASSWORD: ircub_secret
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-ircub-docker-callback-secret-change-me}
+      CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-true}
+      CHANNEL_MOCK_BASE_URL: http://api:8000/mock-api
+      IRCUB_SEED_ON_BOOT: "false"
+      IRCUB_RUN_MIGRATIONS: "false"
+    depends_on:
+      - api
+      - redis
+
+  scheduler:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: ircub-scheduler
+    restart: unless-stopped
+    command: ["php", "artisan", "schedule:work"]
+    env_file:
+      - path: docker/.env.app
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_KEY: ${APP_KEY:-}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ircub
+      DB_USERNAME: ircub
+      DB_PASSWORD: ircub_secret
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-ircub-docker-callback-secret-change-me}
+      CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-true}
+      CHANNEL_MOCK_BASE_URL: http://api:8000/mock-api
+      IRCUB_SEED_ON_BOOT: "false"
+      IRCUB_RUN_MIGRATIONS: "false"
+    depends_on:
+      - api
+      - redis
+
+  web:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      args:
+        VITE_API_URL: /api
+        VITE_APP_NAME: IRCUB
+    container_name: ircub-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
   redis_data:

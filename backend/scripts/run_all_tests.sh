@@ -4,8 +4,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "=== 1) PHPUnit (sqlite in-memory) ==="
+echo "=== 1) PHPUnit (sqlite in-memory) — auth, security, performance, modules ==="
 php artisan test
+
+echo
+echo "=== 1b) Security + TOTP focus ==="
+php artisan test --filter='SecurityHardeningTest|CookieAuthAndTotpTest|TotpTest'
 
 echo
 echo "=== 2) Module smoke scripts (uses .env Postgres/Redis) ==="
