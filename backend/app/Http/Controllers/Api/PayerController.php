@@ -98,13 +98,14 @@ class PayerController extends Controller
             'waterAccounts',
             'obligations',
             'creator:id,name,email',
+            'assessments' => fn ($q) => $q->latest()->limit(20),
+            'payments' => fn ($q) => $q->latest('paid_at')->limit(20),
         ]);
 
-        // Assessments, bills and payments arrive in later modules.
-        $assessments = [];
+        $assessments = $payer->assessments;
+        $payments = $payer->payments;
         $bills = [];
-        $payments = [];
-        $balance = 0;
+        $balance = (float) $assessments->sum(fn ($a) => $a->outstandingAmount());
 
         return response()->json([
             'payer' => $payer,
@@ -119,6 +120,7 @@ class PayerController extends Controller
             'duplicate_matches' => $payer->findDuplicateMatches(),
         ]);
     }
+
 
     public function update(Request $request, Payer $payer): JsonResponse
     {
