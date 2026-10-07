@@ -122,6 +122,7 @@ import { ThemeContext } from "../context/ThemeContext";
 import PayersList from "./components/Payers/PayersList";
 import PayerCreate from "./components/Payers/PayerCreate";
 import PayerProfile from "./components/Payers/PayerProfile";
+import ModulePlaceholder from "./components/Common/ModulePlaceholder";
 
 const Markup = () => {
   const allroutes = [
@@ -228,10 +229,24 @@ const Markup = () => {
     { url: "page-error-500", component: <Error500 /> },
     { url: "page-error-503", component: <Error503 /> },
 
-    /// IRCUB - Taxpayer & Customer Registry
+    /// IRCUB - Taxpayer & Customer Registry (Day 2)
     { url: "payers", component: <PayersList /> },
     { url: "payers/create", component: <PayerCreate /> },
     { url: "payers/:id", component: <PayerProfile /> },
+
+    /// IRCUB - upcoming modules (placeholders so menu links do not white-screen)
+    { url: "assessments", component: <ModulePlaceholder title="Assessments" dayLabel="Day 3" description="Tax assessments and control numbers will be built in the Assessment & Collection module." /> },
+    { url: "payments", component: <ModulePlaceholder title="Payments" dayLabel="Day 3 / Day 5" description="Payment capture and channel integration will be added in later modules." /> },
+    { url: "meter-readings", component: <ModulePlaceholder title="Meter Readings" dayLabel="Day 4" description="Water meter reading capture comes with Water Utility Billing." /> },
+    { url: "billing-cycles", component: <ModulePlaceholder title="Billing Cycles" dayLabel="Day 4" description="Monthly water billing cycles will be implemented in Day 4." /> },
+    { url: "water-bills", component: <ModulePlaceholder title="Water Bills" dayLabel="Day 4" description="Bill generation and customer statements are part of Water Utility Billing." /> },
+    { url: "fmis", component: <ModulePlaceholder title="FMIS Posting" dayLabel="Day 6" description="Daily journal batches and mock FMIS posting come later." /> },
+    { url: "reconciliation", component: <ModulePlaceholder title="Reconciliation" dayLabel="Day 5 / Day 6" description="Channel and FMIS reconciliation screens are planned for integration days." /> },
+    { url: "reports", component: <ModulePlaceholder title="Reports" dayLabel="Day 7" description="Executive reports will be expanded with the analytics dashboard." /> },
+    { url: "users", component: <ModulePlaceholder title="Users & Roles" dayLabel="Day 1 (API ready)" description="Role permissions are live in the API. A full admin UI can be added next." /> },
+    { url: "audit-logs", component: <ModulePlaceholder title="Audit Logs" dayLabel="Day 3" description="Tamper-evident audit trails will be added with revenue transactions." /> },
+    { url: "my-bills", component: <ModulePlaceholder title="My Bills" dayLabel="Day 4" description="Taxpayer self-service bills will appear after billing is implemented." /> },
+    { url: "my-assessments", component: <ModulePlaceholder title="My Assessments" dayLabel="Day 3" description="Taxpayer self-service assessments will appear after assessment module is built." /> },
   ];
 
 

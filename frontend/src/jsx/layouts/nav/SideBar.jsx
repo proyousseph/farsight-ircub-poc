@@ -60,17 +60,18 @@ const SideBar = () => {
   };
 
   useEffect(() => {
-    var btn = document.querySelector(".nav-control");
-    var aaa = document.querySelector("#main-wrapper");
-    function toggleFunc() {
-      return aaa.classList.toggle("menu-toggle");
+    const btn = document.querySelector(".nav-control");
+    const wrapper = document.querySelector("#main-wrapper");
+    if (!btn || !wrapper) {
+      return undefined;
     }
+    const toggleFunc = () => wrapper.classList.toggle("menu-toggle");
     btn.addEventListener("click", toggleFunc);
+    return () => btn.removeEventListener("click", toggleFunc);
   }, []);
 
-  let handleheartBlast = document.querySelector('.heart');
   function heartBlast() {
-    return handleheartBlast.classList.toggle("heart-blast");
+    document.querySelector('.heart')?.classList.toggle("heart-blast");
   }
   const [hideOnScroll, setHideOnScroll] = useState(true)
   useScrollPosition(
