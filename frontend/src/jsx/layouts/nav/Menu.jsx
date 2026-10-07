@@ -71,13 +71,19 @@ export const MenuList = [
     classsChange: 'menu-title',
   },
   {
-    title: 'FMIS Posting',
+    title: 'FMIS Journals',
     iconStyle: <i className="flaticon-381-network"></i>,
     to: 'fmis',
     permission: 'fmis.post',
   },
   {
-    title: 'Reconciliation',
+    title: 'FMIS Reconciliation',
+    iconStyle: <i className="flaticon-381-list"></i>,
+    to: 'fmis',
+    permission: 'fmis.reconcile',
+  },
+  {
+    title: 'Channel Reconciliation',
     iconStyle: <i className="flaticon-381-notepad"></i>,
     to: 'reconciliation',
     permission: 'channels.reconcile',

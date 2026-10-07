@@ -66,7 +66,7 @@ The POC brief allows **5 working days**. Work is grouped by delivery days, not b
 | **2** | Taxpayer/customer registry + tax assessment & collection (control numbers, payments, CSV, audit, filters) | Done |
 | **3** | Water utility billing (tariffs, readings, billing cycle, PDF/SMS mock, statements, abnormal holds) | Done |
 | **4** | Payment channel integration (FX rates, bank/MM mocks, callbacks, retries, channel reconciliation UI) | Done |
-| **5** | FMIS posting & reconciliation, executive dashboard + forecast, Contabo deploy to `ircub.waagefaal.so`, docs polish | Next |
+| **5** | FMIS posting & reconciliation, executive dashboard + forecast, Contabo deploy to `ircub.waagefaal.so`, docs polish | In progress (Module 6 done) |
 
 ---
 
@@ -124,14 +124,15 @@ Progress below follows the **document modules**, independent of the day labels a
 - [x] Daily channel reconciliation vs mock statement file
 - [x] Frontend: Channel Payments + Reconciliation pages
 
-### Module 6 — FMIS Posting & Reconciliation — Planned (Day 5)
+### Module 6 — FMIS Posting & Reconciliation — Done
 
-- [ ] Revenue type → GL mapping (extend existing)
-- [ ] Daily journal batches (Pending / Posted / Failed / Reversed)
-- [ ] Mock FMIS post + FMIS reference; prevent double-posting
-- [ ] IRCUB vs FMIS reconciliation screen with drill-down
+- [x] Configurable revenue type → GL code mapping (`gl_mappings`)
+- [x] Daily journal batches with statuses Pending / Posted / Failed / Reversed
+- [x] Mock FMIS post stores FMIS reference; same payment cannot be posted twice
+- [x] IRCUB vs FMIS reconciliation by GL code/day with transaction drill-down
+- [x] Frontend FMIS page (batches, GL mappings, reconciliation)
 
-### Module 7 — Dashboard with Predictive Analytics — Planned (Day 5)
+### Module 7 — Dashboard with Predictive Analytics — Planned
 
 - [ ] Revenue trends by type and channel
 - [ ] Collections vs targets; water billed vs collected
@@ -139,7 +140,7 @@ Progress below follows the **document modules**, independent of the day labels a
 - [ ] Alerts for unusual activity
 - [ ] Performance-minded aggregation / async updates where practical
 
-### Deploy & polish — Planned (Day 5)
+### Deploy & polish — Planned
 
 - [ ] Dockerized / Nginx deploy to Contabo
 - [ ] HTTPS demo on `ircub.waagefaal.so`

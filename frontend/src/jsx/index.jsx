@@ -130,6 +130,7 @@ import BillingCyclesPage from "./components/Water/BillingCyclesPage";
 import WaterBillsPage from "./components/Water/WaterBillsPage";
 import ChannelPaymentsPage from "./components/Channels/ChannelPaymentsPage";
 import ReconciliationPage from "./components/Channels/ReconciliationPage";
+import FmisPage from "./components/Fmis/FmisPage";
 
 const Markup = () => {
   const allroutes = [
@@ -250,7 +251,8 @@ const Markup = () => {
     { url: "my-bills", component: <WaterBillsPage /> },
     { url: "channel-payments", component: <ChannelPaymentsPage /> },
     { url: "reconciliation", component: <ReconciliationPage /> },
-    { url: "fmis", component: <ModulePlaceholder title="FMIS Posting" dayLabel="Day 6" description="Daily journal batches and mock FMIS posting come later." /> },
+    { url: "fmis", component: <FmisPage /> },
+    { url: "fmis-reconciliation", component: <FmisPage /> },
     { url: "reports", component: <ModulePlaceholder title="Reports" dayLabel="Day 7" description="Executive reports will be expanded with the analytics dashboard." /> },
     { url: "users", component: <ModulePlaceholder title="Users & Roles" dayLabel="Day 1 (API ready)" description="Role permissions are live in the API. A full admin UI can be added next." /> },
     { url: "audit-logs", component: <ModulePlaceholder title="Audit Logs" dayLabel="Day 3" description="Tamper-evident audit trails will be added with revenue transactions." /> },
