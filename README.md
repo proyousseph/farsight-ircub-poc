@@ -67,10 +67,18 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 - [x] Permission middleware
 - [x] Dompet login wired to Laravel API
 - [x] Role-based sidebar menus
+- [x] pgAdmin + Redis Insight for local inspection
+
+### Done (Day 2 — Taxpayer & Customer Registry)
+
+- [x] Payers, water accounts, and revenue obligations schema
+- [x] Duplicate detection (phone / email / national ID) with force-create flag
+- [x] Payer API: list, create, show (360° profile), update
+- [x] Demo seed data (including intentional duplicate phone)
+- [x] Frontend: payer list, register form, profile page
 
 ### Next
 
-- [ ] Taxpayer & customer registry
 - [ ] Tax assessment & collection (+ CSV upload, audit)
 - [ ] Water utility billing
 - [ ] Payment channel mocks + retries

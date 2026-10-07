@@ -118,6 +118,11 @@ import Setting from "./layouts/Setting";
 import ScrollToTop from './pages/ScrollToTop';
 import { ThemeContext } from "../context/ThemeContext";
 
+// IRCUB modules
+import PayersList from "./components/Payers/PayersList";
+import PayerCreate from "./components/Payers/PayerCreate";
+import PayerProfile from "./components/Payers/PayerProfile";
+
 const Markup = () => {
   const allroutes = [
     /// Dashboard
@@ -222,7 +227,13 @@ const Markup = () => {
     { url: "page-error-404", component: <Error404 /> },
     { url: "page-error-500", component: <Error500 /> },
     { url: "page-error-503", component: <Error503 /> },
+
+    /// IRCUB - Taxpayer & Customer Registry
+    { url: "payers", component: <PayersList /> },
+    { url: "payers/create", component: <PayerCreate /> },
+    { url: "payers/:id", component: <PayerProfile /> },
   ];
+
 
   return (
     <>
