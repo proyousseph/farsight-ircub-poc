@@ -230,6 +230,8 @@ class RolePermissionSeeder extends Seeder
                     'phone' => '25261'.fake()->numerify('#######'),
                     'password' => Hash::make('Password@123'),
                     'is_active' => true,
+                    // Force rotation outside local/testing when seeds are reused.
+                    'must_change_password' => ! app()->environment(['local', 'testing']),
                     'email_verified_at' => now(),
                 ]
             );

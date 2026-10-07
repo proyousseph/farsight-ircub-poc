@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Symfony\Component\HttpFoundation\Cookie;
 
 class AuthCookie
@@ -19,13 +20,16 @@ class AuthCookie
         $secure = (bool) config('session.secure', false)
             || (! app()->environment(['local', 'testing']) && request()->secure());
 
-        // Cross-site SPA (e.g. different host) needs SameSite=None + Secure.
-        // Same-host local (localhost:5173 → localhost:8001) can use Lax over HTTP.
-        $sameSite = $secure ? 'none' : 'lax';
+        $sameSite = strtolower((string) config('ircub.auth_cookie.same_site', 'lax'));
+        if (! in_array($sameSite, ['lax', 'strict', 'none'], true)) {
+            $sameSite = 'lax';
+        }
+        if ($sameSite === 'none') {
+            $secure = true;
+        }
 
         return cookie(
             self::NAME,
-            // Sanctum tokens contain "|" which is unsafe in raw cookie values.
             self::encode($token),
             $minutes,
             '/',
@@ -54,18 +58,23 @@ class AuthCookie
 
     public static function encode(string $token): string
     {
-        return rtrim(strtr(base64_encode($token), '+/', '-_'), '=');
+        return Crypt::encryptString($token);
     }
 
     public static function decode(string $encoded): ?string
     {
-        $padded = strtr($encoded, '-_', '+/');
-        $pad = strlen($padded) % 4;
-        if ($pad > 0) {
-            $padded .= str_repeat('=', 4 - $pad);
+        try {
+            $token = Crypt::decryptString($encoded);
+        } catch (\Throwable) {
+            // Legacy base64url payload (pre-Crypt cookies) for one release.
+            $padded = strtr($encoded, '-_', '+/');
+            $pad = strlen($padded) % 4;
+            if ($pad > 0) {
+                $padded .= str_repeat('=', 4 - $pad);
+            }
+            $token = base64_decode($padded, true);
         }
 
-        $token = base64_decode($padded, true);
         if (! is_string($token) || $token === '' || ! str_contains($token, '|')) {
             return null;
         }

@@ -79,6 +79,15 @@ class ChannelPaymentController extends Controller
             return response()->json(['message' => 'You do not have access to initiate payments for this payer.'], 403);
         }
 
+        if (empty($data['assessment_id']) && empty($data['water_bill_id'])) {
+            $maxUnlinked = (float) config('ircub.payments.max_unlinked_amount', 100000);
+            if ((float) $data['amount'] - $maxUnlinked > 0.009) {
+                return response()->json([
+                    'message' => "Unlinked payment amount exceeds the maximum of {$maxUnlinked}.",
+                ], 422);
+            }
+        }
+
         try {
             $payment = $this->channels->initiate($data, $request->user()?->id);
         } catch (\Throwable $e) {
@@ -115,12 +124,22 @@ class ChannelPaymentController extends Controller
         try {
             $payment = $this->channels->checkStatus($channelPayment, $request->user()?->id);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => config('app.debug') ? $e->getMessage() : 'Unable to check channel payment status.',
+            ], 422);
         }
 
         return response()->json([
             'message' => 'Status check completed.',
-            'channel_payment' => $payment,
+            'channel_payment' => [
+                'id' => $payment->id,
+                'status' => $payment->status,
+                'external_ref' => $payment->external_ref,
+                'provider_txn_id' => $payment->provider_txn_id,
+                'payment_id' => $payment->payment_id,
+                'amount_usd' => $payment->amount_usd,
+                'channel' => $payment->channel,
+            ],
         ]);
     }
 

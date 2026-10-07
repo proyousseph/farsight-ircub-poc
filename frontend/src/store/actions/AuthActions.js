@@ -50,7 +50,18 @@ export function loginAction(email, password, navigate, otp = null) {
         saveTokenInLocalStorage(response.data);
         runLogoutTimer(dispatch, Number(response.data.expiresIn) * 1000, navigate);
         dispatch(loginConfirmedAction(response.data));
-        navigate('/dashboard');
+        if (response.data.must_change_password) {
+          navigate('/change-password');
+          return;
+        }
+        const perms = response.data.permissions || [];
+        if (perms.includes('dashboard.view')) {
+          navigate('/dashboard');
+        } else if (perms.includes('bills.view_own')) {
+          navigate('/my-bills');
+        } else {
+          navigate('/payers');
+        }
       })
       .catch((error) => {
         const data = error.response?.data || { message: 'Unable to reach IRCUB API.' };

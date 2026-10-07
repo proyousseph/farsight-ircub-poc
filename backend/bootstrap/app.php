@@ -23,10 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
             'active' => \App\Http\Middleware\EnsureUserIsActive::class,
             'password.changed' => \App\Http\Middleware\EnsurePasswordChanged::class,
+            'trusted.origin' => \App\Http\Middleware\EnsureTrustedOrigin::class,
         ]);
 
-        // Bearer token cookie must remain readable by AttachBearerFromCookie
-        // (still HttpOnly / Secure / SameSite — not accessible to JS).
+        // Auth cookie payload is encrypted via Crypt in AuthCookie (not double-encrypted by framework).
         $middleware->encryptCookies(except: [
             \App\Support\AuthCookie::NAME,
         ]);
@@ -36,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Cookie\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \App\Http\Middleware\SecurityHeaders::class,
+            \App\Http\Middleware\EnsureTrustedOrigin::class,
             \App\Http\Middleware\AttachBearerFromCookie::class,
         ]);
     })

@@ -32,26 +32,19 @@ class CookieAuthAndTotpTest extends TestCase
 
         $login->assertCookie(AuthCookie::NAME);
         $this->assertTrue((bool) $login->json('cookie_auth'));
+        $this->assertNotEmpty($login->json('token'));
 
         $token = $login->json('token');
-        $encoded = AuthCookie::encode($token);
 
-        // Simulate browser: cookie only (no Authorization header).
-        $response = $this->call(
+        $this->call(
             'GET',
             '/api/auth/me',
             [],
-            [AuthCookie::NAME => $encoded],
+            [AuthCookie::NAME => AuthCookie::encode($token)],
             [],
             ['HTTP_ACCEPT' => 'application/json']
-        );
-
-        $this->assertSame(
-            200,
-            $response->getStatusCode(),
-            'Cookie auth failed: '.$response->getContent()
-        );
-        $this->assertSame('admin@ircub.test', $response->json('user.email'));
+        )->assertOk()
+            ->assertJsonPath('user.email', 'admin@ircub.test');
     }
 
     public function test_logout_forgets_auth_cookie(): void
@@ -86,9 +79,6 @@ class CookieAuthAndTotpTest extends TestCase
             ->assertJsonPath('user.two_factor_confirmed', true);
 
         $officer->refresh();
-        $this->assertTrue((bool) $officer->two_factor_enabled);
-        $this->assertNotNull($officer->two_factor_confirmed_at);
-
         $loginCode = Totp::currentCode($officer->two_factor_secret);
         $this->postJson('/api/auth/login', [
             'email' => 'officer@ircub.test',

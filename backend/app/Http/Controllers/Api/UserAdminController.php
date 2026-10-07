@@ -46,6 +46,13 @@ class UserAdminController extends Controller
 
         $this->assertAssignableRoles($request->user(), $data['role_ids']);
 
+        // 2FA can only be enabled after the user confirms a TOTP secret via /auth/2fa/*.
+        if (! empty($data['two_factor_enabled'])) {
+            throw ValidationException::withMessages([
+                'two_factor_enabled' => 'Enable 2FA only after the user completes TOTP setup and confirmation.',
+            ]);
+        }
+
         $user = User::query()->create([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -53,7 +60,7 @@ class UserAdminController extends Controller
             'password' => Hash::make($data['password']),
             'is_active' => $data['is_active'] ?? true,
             'must_change_password' => true,
-            'two_factor_enabled' => $data['two_factor_enabled'] ?? false,
+            'two_factor_enabled' => false,
             'payer_id' => $data['payer_id'] ?? null,
             'email_verified_at' => now(),
         ]);
@@ -86,9 +93,16 @@ class UserAdminController extends Controller
 
         $wasActive = (bool) $user->is_active;
 
+        if (array_key_exists('two_factor_enabled', $data) && $data['two_factor_enabled'] && ! $user->two_factor_confirmed_at) {
+            throw ValidationException::withMessages([
+                'two_factor_enabled' => 'User must confirm TOTP setup before 2FA can be enabled.',
+            ]);
+        }
+
         if (array_key_exists('password', $data) && $data['password']) {
             $user->password = Hash::make($data['password']);
             $user->must_change_password = true;
+            $user->tokens()->delete();
         }
         foreach (['name', 'email', 'phone', 'is_active', 'two_factor_enabled', 'payer_id'] as $field) {
             if (array_key_exists($field, $data)) {

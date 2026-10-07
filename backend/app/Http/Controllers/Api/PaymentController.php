@@ -70,6 +70,15 @@ class PaymentController extends Controller
             return response()->json(['message' => 'You do not have access to capture payments for this payer.'], 403);
         }
 
+        if (empty($data['assessment_id']) && empty($data['water_bill_id'])) {
+            $maxUnlinked = (float) config('ircub.payments.max_unlinked_amount', 100000);
+            if ((float) $data['amount'] - $maxUnlinked > 0.009) {
+                return response()->json([
+                    'message' => "Unlinked payment amount exceeds the maximum of {$maxUnlinked}.",
+                ], 422);
+            }
+        }
+
         if (! empty($data['assessment_id'])) {
             $assessment = Assessment::query()->findOrFail($data['assessment_id']);
             if ((int) $assessment->payer_id !== (int) $data['payer_id']) {

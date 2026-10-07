@@ -42,10 +42,18 @@ class AuditLogController extends Controller
             return null;
         }
 
-        $sensitive = ['password', 'remember_token', 'token', 'secret', 'signature', 'authorization', 'initiate_payload', 'callback_payload'];
-        foreach ($sensitive as $key) {
-            if (array_key_exists($key, $payload)) {
+        $sensitive = [
+            'password', 'remember_token', 'token', 'secret', 'signature', 'authorization',
+            'initiate_payload', 'callback_payload', 'two_factor_secret', 'national_id',
+        ];
+
+        foreach ($payload as $key => $value) {
+            if (in_array($key, $sensitive, true)) {
                 $payload[$key] = '[redacted]';
+                continue;
+            }
+            if (is_array($value)) {
+                $payload[$key] = $this->redactSensitive($value);
             }
         }
 

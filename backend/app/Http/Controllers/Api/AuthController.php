@@ -48,17 +48,25 @@ class AuthController extends Controller
             }
         }
 
+        // Single-session style: drop previous web tokens on login.
+        $user->tokens()->where('name', 'ircub-web')->delete();
         $token = $user->createToken('ircub-web')->plainTextToken;
 
-        return response()->json([
+        $payload = [
             'message' => 'Login successful.',
-            'token' => $token,
-            'token_type' => 'Bearer',
             'cookie_auth' => true,
+            'token_type' => 'Bearer',
             'user' => $user->toAuthArray(),
             'password_policy' => PasswordPolicy::meta(),
             'two_factor_verified' => $twoFactorOn,
-        ])->withCookie(AuthCookie::make($token));
+        ];
+
+        // Browser SPA uses HttpOnly cookie only. Token in JSON is opt-in for API clients/tests.
+        if ($this->shouldReturnToken($request)) {
+            $payload['token'] = $token;
+        }
+
+        return response()->json($payload)->withCookie(AuthCookie::make($token));
     }
 
     public function me(Request $request): JsonResponse
@@ -92,11 +100,22 @@ class AuthController extends Controller
         $user->must_change_password = false;
         $user->save();
 
-        return response()->json([
+        // Invalidate all sessions; issue a fresh cookie token.
+        $user->tokens()->delete();
+        $token = $user->createToken('ircub-web')->plainTextToken;
+
+        $payload = [
             'message' => 'Password updated successfully.',
+            'cookie_auth' => true,
             'user' => $user->fresh()->toAuthArray(),
             'password_policy' => PasswordPolicy::meta(),
-        ]);
+        ];
+        if ($this->shouldReturnToken($request)) {
+            $payload['token'] = $token;
+            $payload['token_type'] = 'Bearer';
+        }
+
+        return response()->json($payload)->withCookie(AuthCookie::make($token));
     }
 
     public function setupTwoFactor(Request $request): JsonResponse
@@ -181,6 +200,16 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Logged out successfully.',
         ])->withCookie(AuthCookie::forget());
+    }
+
+    private function shouldReturnToken(Request $request): bool
+    {
+        if (app()->environment('testing')) {
+            return true;
+        }
+
+        return $request->boolean('return_token')
+            || $request->header('X-IRCUB-Return-Token') === '1';
     }
 
     private function challengeTwoFactor(User $user, ?string $otp): ?JsonResponse

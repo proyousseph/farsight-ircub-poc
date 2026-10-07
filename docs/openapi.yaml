@@ -4,11 +4,12 @@ info:
   description: |
     Integrated Revenue Collection & Utility Billing Platform (POC).
 
-    Authenticate with `POST /api/auth/login`, then pass the returned token as
-    `Authorization: Bearer <token>`. Most routes also require a permission slug
-    (see role seeders).
+    Authenticate with `POST /api/auth/login`. The SPA uses the HttpOnly
+    `ircub_token` cookie. For API tools, send `X-IRCUB-Return-Token: 1` on login
+    to receive a Bearer token, then pass `Authorization: Bearer <token>`.
+    Most routes also require a permission slug (see role seeders).
 
-    Mock external systems are under `/mock-api/*` (no Sanctum).
+    Mock external systems are under `/mock-api/*` (local/testing only).
   version: 1.0.0
   contact:
     name: Yusuf Mohamed Ahmed — Farsight Africa POC

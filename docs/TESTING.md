@@ -28,8 +28,8 @@ See also the **Testing** section in the root [`README.md`](../README.md).
 | `PayerApiTest.php` | Registry create/list/duplicates |
 | `FmisApiTest.php` | Journal create/post/reverse/recon |
 | `DashboardApiTest.php` | Snapshot, cache hit meta, alerts, refresh |
-| `GapPolishTest.php` | SoD reversals, 2FA flag, users/roles, own-scope |
-| `ApiDocsTest.php` | OpenAPI / Swagger routes |
+| `GapPolishTest.php` | SoD reversals, 2FA stub (local), users/roles, own-scope |
+| `ApiDocsTest.php` | OpenAPI / Swagger routes (when `IRCUB_DOCS_ENABLED`) |
 
 ### Unit
 

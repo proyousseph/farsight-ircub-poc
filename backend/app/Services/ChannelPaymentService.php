@@ -163,6 +163,13 @@ class ChannelPaymentService
                 return $channelPayment;
             }
 
+            if (isset($payload['amount']) && is_numeric($payload['amount'])) {
+                $reported = (float) $payload['amount'];
+                if (abs($reported - (float) $channelPayment->amount_usd) > 0.009) {
+                    throw new \InvalidArgumentException('Callback amount does not match the initiated payment.');
+                }
+            }
+
             $before = $channelPayment->toArray();
             $channelPayment->callback_payload = $this->redactPayload($payload);
             $channelPayment->callback_verified = true;

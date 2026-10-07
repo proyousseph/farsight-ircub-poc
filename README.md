@@ -77,8 +77,8 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 - [x] HttpOnly cookie auth (`ircub_token`) + Bearer header (same-site with Vite/`web`)
 - [x] Password policy (min 10 + upper/lower/number/symbol) on user create/update (admin-tunable)
 - [x] Optional 2FA: **TOTP** setup/confirm/disable; local stub OTP `123456` only when `IRCUB_2FA_ALLOW_STUB=true`
-- [x] Security middleware: active-user check, must-change-password gate, security headers, login throttle
-- [x] Users & Roles admin API + UI (custom roles, activate/deactivate users)
+- [x] Security middleware: active-user check, must-change-password gate, trusted Origin, CSP/security headers, login throttle
+- [x] Users & Roles admin API + UI (custom roles, activate/deactivate users; 2FA enable requires confirmed TOTP)
 - [x] Payment reversal segregation of duties (request ≠ approve)
 - [x] Audit log browser API + UI
 - [x] Taxpayer self-service scoped to linked `payer_id` (**no** `payments.capture`)

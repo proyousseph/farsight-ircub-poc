@@ -1,5 +1,4 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
 import { hasPermission } from '../../../services/AuthService';
 
 /**
@@ -8,7 +7,11 @@ import { hasPermission } from '../../../services/AuthService';
 const RequirePermission = ({ anyOf = [], children }) => {
   const allowed = anyOf.some((permission) => hasPermission(permission));
   if (!allowed) {
-    return <Navigate to="/dashboard" replace />;
+    return (
+      <div className="alert alert-warning mt-3" role="alert">
+        You do not have permission to view this page.
+      </div>
+    );
   }
 
   return children;

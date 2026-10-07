@@ -12,7 +12,7 @@ import { Logout } from "../../../store/actions/AuthActions";
 
 function readUserSession() {
   try {
-    const raw = localStorage.getItem('userDetails');
+    const raw = sessionStorage.getItem('userDetails') || localStorage.getItem('userDetails');
     if (!raw) return { permissions: [], name: 'Guest', email: '', role: '' };
     const stored = JSON.parse(raw);
     return {

@@ -28,6 +28,12 @@ return [
 
     'auth_cookie' => [
         'name' => 'ircub_token',
+        // lax (default) | strict | none — none requires HTTPS and increases CSRF risk.
+        'same_site' => env('IRCUB_AUTH_COOKIE_SAMESITE', 'lax'),
+    ],
+
+    'payments' => [
+        'max_unlinked_amount' => (float) env('IRCUB_MAX_UNLINKED_PAYMENT', 100000),
     ],
 
     /*

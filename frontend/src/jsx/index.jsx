@@ -11,6 +11,7 @@ import Footer from "./layouts/Footer";
 import ScrollToTop from "./pages/ScrollToTop";
 import { ThemeContext } from "../context/ThemeContext";
 import RequirePermission from "./components/Common/RequirePermission";
+import { getStoredUser } from "../services/AuthService";
 
 const ExecutiveDashboard = lazy(() => import("./components/Dashboard/ExecutiveDashboard"));
 const PayersList = lazy(() => import("./components/Payers/PayersList"));
@@ -27,6 +28,7 @@ const FmisPage = lazy(() => import("./components/Fmis/FmisPage"));
 const UsersRolesPage = lazy(() => import("./components/Admin/UsersRolesPage"));
 const AuditLogsPage = lazy(() => import("./components/Admin/AuditLogsPage"));
 const SystemConfigPage = lazy(() => import("./components/Admin/SystemConfigPage"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 
 const PageFallback = () => (
   <div className="d-flex justify-content-center align-items-center py-5">
@@ -35,6 +37,29 @@ const PageFallback = () => (
 );
 
 const Markup = () => {
+  const auth = useSelector((state) => state.auth.auth);
+  const stored = getStoredUser();
+  const mustChange = Boolean(auth?.must_change_password || stored?.must_change_password);
+
+  if (mustChange) {
+    return (
+      <>
+        <Routes>
+          <Route
+            path="change-password"
+            element={
+              <Suspense fallback={<PageFallback />}>
+                <ChangePassword />
+              </Suspense>
+            }
+          />
+          <Route path="*" element={<Navigate to="/change-password" replace />} />
+        </Routes>
+        <ScrollToTop />
+      </>
+    );
+  }
+
   const routes = [
     { url: "", component: <ExecutiveDashboard />, anyOf: ['dashboard.view'] },
     { url: "dashboard", component: <ExecutiveDashboard />, anyOf: ['dashboard.view'] },
@@ -62,7 +87,13 @@ const Markup = () => {
     { url: "users", component: <UsersRolesPage />, anyOf: ['users.manage', 'roles.manage'] },
     { url: "audit-logs", component: <AuditLogsPage />, anyOf: ['audit.view'] },
     { url: "system-config", component: <SystemConfigPage />, anyOf: ['config.manage'] },
+    { url: "change-password", component: <ChangePassword /> },
   ];
+
+  const defaultPath = auth?.permissions?.includes('dashboard.view')
+    || stored?.permissions?.includes('dashboard.view')
+    ? '/dashboard'
+    : (stored?.permissions?.includes('bills.view_own') ? '/my-bills' : '/payers');
 
   return (
     <>
@@ -83,7 +114,7 @@ const Markup = () => {
               }
             />
           ))}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to={defaultPath} replace />} />
         </Route>
       </Routes>
       <ScrollToTop />
