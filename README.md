@@ -66,7 +66,7 @@ The POC brief allows **5 working days**. Work is grouped by delivery days, not b
 | **2** | Taxpayer/customer registry + tax assessment & collection (control numbers, payments, CSV, audit, filters) | Done |
 | **3** | Water utility billing (tariffs, readings, billing cycle, PDF/SMS mock, statements, abnormal holds) | Done |
 | **4** | Payment channel integration (FX rates, bank/MM mocks, callbacks, retries, channel reconciliation UI) | Done |
-| **5** | FMIS posting & reconciliation, executive dashboard + forecast, Contabo deploy to `ircub.waagefaal.so`, docs polish | In progress (Module 6 done) |
+| **5** | FMIS posting & reconciliation → executive dashboard + forecast → Contabo deploy + docs polish | Module 6 verified; Module 7 next |
 
 ---
 
@@ -124,15 +124,19 @@ Progress below follows the **document modules**, independent of the day labels a
 - [x] Daily channel reconciliation vs mock statement file
 - [x] Frontend: Channel Payments + Reconciliation pages
 
-### Module 6 — FMIS Posting & Reconciliation — Done
+### Module 6 — FMIS Posting & Reconciliation — Done & verified
 
 - [x] Configurable revenue type → GL code mapping (`gl_mappings`)
 - [x] Daily journal batches with statuses Pending / Posted / Failed / Reversed
 - [x] Mock FMIS post stores FMIS reference; same payment cannot be posted twice
+- [x] Reverse clears IRCUB + mock FMIS so payments can be re-posted cleanly
 - [x] IRCUB vs FMIS reconciliation by GL code/day with transaction drill-down
-- [x] Frontend FMIS page (batches, GL mappings, reconciliation)
+- [x] Reconcile rehydrates mock FMIS from IRCUB `POSTED` batches (survives Redis/`cache:clear`)
+- [x] Full traceability: payment → journal line → FMIS reference
+- [x] Frontend: **FMIS Journals** (batches, GL mappings, reconciliation tabs)
+- [x] Verified with `backend/scripts/verify_module6.php` (13/13) + HTTP API checks (matched totals after reverse/repost and after `cache:clear`)
 
-### Module 7 — Dashboard with Predictive Analytics — Planned
+### Module 7 — Dashboard with Predictive Analytics — Next
 
 - [ ] Revenue trends by type and channel
 - [ ] Collections vs targets; water billed vs collected
@@ -244,14 +248,47 @@ curl -X POST http://127.0.0.1:8001/api/auth/login \
 
 ---
 
+## Module 6 — FMIS API (summary)
+
+Requires a supervisor/admin token (`fmis.post` / `fmis.reconcile`).
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/gl-mappings` | Revenue code → GL mapping |
+| `GET` | `/api/fmis/batches` | List journal batches |
+| `POST` | `/api/fmis/batches` | Create daily batch (`journal_date`, optional `post_immediately`) |
+| `POST` | `/api/fmis/batches/{id}/post` | Post PENDING batch to mock FMIS |
+| `POST` | `/api/fmis/batches/{id}/reverse` | Reverse POSTED batch |
+| `GET` | `/api/fmis/reconciliation?date=YYYY-MM-DD` | IRCUB vs FMIS totals by GL + drill-down |
+
+Mock FMIS provider (for demos / local inspection):
+
+| Method | Endpoint |
+|---|---|
+| `POST` | `/mock-api/fmis/journals` |
+| `GET` | `/mock-api/fmis/journals?date=YYYY-MM-DD` |
+| `POST` | `/mock-api/fmis/journals/reverse` |
+
+Verify locally:
+
+```bash
+cd backend
+php scripts/verify_module6.php
+```
+
+UI: login as `supervisor@ircub.test` → **FMIS Journals**.
+
+---
+
 ## Assumptions & limitations
 
 - The take-home window is **5 working days**; modules are batched across those days.
 - Banks, mobile money, SMS, FX rates, and FMIS are simulated with mock services.
+- Mock FMIS journal state lives in Redis cache; reconciliation rebuilds the day index from IRCUB `POSTED` batches when needed.
 - Only sandbox / test data is used — no real personal, taxpayer, or financial data.
 - Optional 2FA is planned as a configurable stub, not a full production MFA product.
 - Frontend still contains Dompet demo pages that will be replaced or hidden as remaining IRCUB screens are finished.
-- Hosted HTTPS demo on Contabo is planned for the final day once FMIS/dashboard are in place.
+- Hosted HTTPS demo on Contabo is planned after Module 7 (dashboard) is complete.
 
 ---
 

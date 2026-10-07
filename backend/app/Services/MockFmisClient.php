@@ -29,4 +29,15 @@ class MockFmisClient
 
         return $response->getData(true);
     }
+
+    public function reverseJournal(string $batchNumber, string $journalDate): array
+    {
+        $controller = app(MockFmisController::class);
+        $response = $controller->reverseJournal(Request::create('/mock-api/fmis/journals/reverse', 'POST', [
+            'batch_number' => $batchNumber,
+            'journal_date' => $journalDate,
+        ]));
+
+        return $response->getData(true);
+    }
 }

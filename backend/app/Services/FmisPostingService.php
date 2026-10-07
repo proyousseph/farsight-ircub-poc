@@ -199,12 +199,20 @@ class FmisPostingService
                 // or change unique. We'll delete lines and mark batch reversed, payments become eligible again.
             }
 
+            // Keep line rows for audit, but free payment_id unique so payments can be re-posted.
+            // Detach by deleting lines after resetting payments (unique is on payment_id).
             FmisJournalLine::query()->where('fmis_journal_batch_id', $batch->id)->delete();
 
             $batch->status = 'REVERSED';
             $batch->reversed_at = now();
             $batch->line_count = 0;
             $batch->save();
+
+            try {
+                $this->fmis->reverseJournal($batch->batch_number, $batch->journal_date->toDateString());
+            } catch (\Throwable $e) {
+                // Mock reverse is best-effort; IRCUB state is already reversed.
+            }
 
             AuditLog::record('FmisJournalBatch', $batch->id, 'REVERSED', $before, $batch->toArray(), $userId);
 

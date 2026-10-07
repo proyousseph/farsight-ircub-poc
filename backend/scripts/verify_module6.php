@@ -74,6 +74,7 @@ ok('NO_DOUBLE_POST', $blocked, $blocked ? 'blocked as expected' : 'allowed unexp
 $report = $recon->reconcileDay($date);
 $gl = collect($report['rows'])->firstWhere('gl_code', GlMapping::resolveGlCode($payment->revenue_code));
 ok('RECON_BY_GL', $report['summary']['ircub_total'] > 0 && $gl !== null, 'ircub='.$report['summary']['ircub_total'].' matched_gls='.$report['summary']['matched_gl_codes']);
+ok('RECON_MATCHED', abs((float) $report['summary']['difference']) < 0.005 && (int) $report['summary']['variance_gl_codes'] === 0, 'diff='.$report['summary']['difference'].' variance_gls='.$report['summary']['variance_gl_codes']);
 ok('RECON_DRILLDOWN', $gl && count($gl['ircub_transactions']) > 0 && count($gl['fmis_transactions']) > 0, 'ircub_tx='.count($gl['ircub_transactions'] ?? []).' fmis_tx='.count($gl['fmis_transactions'] ?? []));
 ok('TRACEABILITY', FmisJournalLine::query()->where('payment_id', $payment->id)->whereNotNull('fmis_line_ref')->exists(), 'payment→journal line→fmis ref');
 
@@ -84,6 +85,9 @@ ok('BATCH_REVERSED', $reversed->status === 'REVERSED' && $payment->fmis_status =
 
 $reposted = $posting->createAndPost($date, $officer->id);
 ok('REPOST_AFTER_REVERSE', $reposted->status === 'POSTED', 'batch='.$reposted->batch_number);
+
+$reportAfter = $recon->reconcileDay($date);
+ok('RECON_AFTER_REPOST', abs((float) $reportAfter['summary']['difference']) < 0.005, 'diff='.$reportAfter['summary']['difference']);
 
 echo "\nSUMMARY: $pass passed, $fail failed, ".($pass + $fail)." total\n";
 exit($fail > 0 ? 2 : 0);

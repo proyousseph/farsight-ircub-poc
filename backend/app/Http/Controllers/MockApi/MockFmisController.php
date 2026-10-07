@@ -79,7 +79,10 @@ class MockFmisController extends Controller
             'date' => ['required', 'date'],
         ]);
 
-        $batches = Cache::get('mock_fmis_by_date:'.$data['date'], []);
+        $batches = collect(Cache::get('mock_fmis_by_date:'.$data['date'], []))
+            ->reject(fn ($batch) => ($batch['status'] ?? 'POSTED') === 'REVERSED')
+            ->values()
+            ->all();
 
         $totalsByGl = [];
         foreach ($batches as $batch) {
@@ -93,6 +96,44 @@ class MockFmisController extends Controller
             'date' => $data['date'],
             'batches' => $batches,
             'totals_by_gl' => collect($totalsByGl)->map(fn ($v) => round($v, 2)),
+            'provider' => 'mock-api/fmis',
+        ]);
+    }
+
+    public function reverseJournal(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'batch_number' => ['required', 'string'],
+            'journal_date' => ['required', 'date'],
+        ]);
+
+        $cacheKey = 'mock_fmis_batch:'.$data['batch_number'];
+        $existing = Cache::get($cacheKey);
+        if ($existing) {
+            $existing['status'] = 'REVERSED';
+            $existing['reversed_at'] = now()->toIso8601String();
+            Cache::put($cacheKey, $existing, now()->addDays(7));
+            if (! empty($existing['fmis_reference'])) {
+                Cache::put('mock_fmis_ref:'.$existing['fmis_reference'], $existing, now()->addDays(7));
+            }
+        }
+
+        $byDate = collect(Cache::get('mock_fmis_by_date:'.$data['journal_date'], []))
+            ->map(function ($batch) use ($data) {
+                if (($batch['batch_number'] ?? null) === $data['batch_number']) {
+                    $batch['status'] = 'REVERSED';
+                    $batch['reversed_at'] = now()->toIso8601String();
+                }
+
+                return $batch;
+            })
+            ->values()
+            ->all();
+        Cache::put('mock_fmis_by_date:'.$data['journal_date'], $byDate, now()->addDays(7));
+
+        return response()->json([
+            'status' => 'REVERSED',
+            'batch_number' => $data['batch_number'],
             'provider' => 'mock-api/fmis',
         ]);
     }

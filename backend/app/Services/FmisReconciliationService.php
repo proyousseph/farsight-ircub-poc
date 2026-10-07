@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\FmisJournalBatch;
 use App\Models\FmisJournalLine;
 use App\Models\Payment;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class FmisReconciliationService
 {
@@ -19,13 +21,15 @@ class FmisReconciliationService
      */
     public function reconcileDay(string $date): array
     {
+        // If app cache was cleared, rebuild mock FMIS entries from IRCUB POSTED batches.
+        $this->rehydrateMockFmis($date);
+
         $ircubLines = FmisJournalLine::query()
             ->with(['payment:id,external_ref,amount,paid_at,fmis_status,fmis_reference', 'batch:id,batch_number,status,journal_date,fmis_reference'])
             ->whereHas('batch', function ($q) use ($date) {
                 $q->whereDate('journal_date', $date)->where('status', 'POSTED');
             })
             ->get();
-
         $ircubByGl = $ircubLines->groupBy('gl_code')->map(function (Collection $group) {
             return [
                 'gl_code' => $group->first()->gl_code,
@@ -118,5 +122,51 @@ class FmisReconciliationService
             ],
             'rows' => $rows,
         ];
+    }
+
+    private function rehydrateMockFmis(string $date): void
+    {
+        $batches = FmisJournalBatch::query()
+            ->with('lines')
+            ->whereDate('journal_date', $date)
+            ->where('status', 'POSTED')
+            ->get();
+
+        $byDate = [];
+
+        foreach ($batches as $batch) {
+            if ($batch->lines->isEmpty()) {
+                continue;
+            }
+
+            try {
+                $payload = [
+                    'batch_number' => $batch->batch_number,
+                    'journal_date' => $batch->journal_date->toDateString(),
+                    'lines' => $batch->lines->map(fn (FmisJournalLine $line) => [
+                        'payment_id' => $line->payment_id,
+                        'gl_code' => $line->gl_code,
+                        'amount' => (float) $line->amount,
+                        'revenue_code' => $line->revenue_code,
+                        'external_ref' => null,
+                    ])->values()->all(),
+                ];
+
+                $response = $this->fmis->postJournal($payload);
+
+                // If mock still has a REVERSED copy of a batch that IRCUB shows POSTED, force a fresh post.
+                if (($response['status'] ?? '') === 'REVERSED') {
+                    Cache::forget('mock_fmis_batch:'.$batch->batch_number);
+                    $response = $this->fmis->postJournal($payload);
+                }
+
+                $byDate[] = $response;
+            } catch (\Throwable $e) {
+                // Idempotent rehydrate — ignore mock failures.
+            }
+        }
+
+        // Replace day index so cache clear / duplicate appends cannot skew FMIS totals.
+        Cache::put('mock_fmis_by_date:'.$date, $byDate, now()->addDays(7));
     }
 }

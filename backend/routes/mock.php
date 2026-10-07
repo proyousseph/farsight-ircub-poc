@@ -12,4 +12,5 @@ Route::post('statements', [MockChannelController::class, 'statement']);
 Route::prefix('fmis')->group(function () {
     Route::post('journals', [MockFmisController::class, 'postJournal']);
     Route::get('journals', [MockFmisController::class, 'journalsByDate']);
+    Route::post('journals/reverse', [MockFmisController::class, 'reverseJournal']);
 });
