@@ -14,5 +14,6 @@ return [
     'allowed_headers' => ['*'],
     'exposed_headers' => [],
     'max_age' => 0,
-    'supports_credentials' => false,
+    // Required for HttpOnly auth cookie sent with credentialed SPA requests.
+    'supports_credentials' => true,
 ];

@@ -32,6 +32,9 @@ Route::prefix('auth')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('logout', [AuthController::class, 'logout']);
         Route::put('password', [AuthController::class, 'changePassword']);
+        Route::post('2fa/setup', [AuthController::class, 'setupTwoFactor']);
+        Route::post('2fa/confirm', [AuthController::class, 'confirmTwoFactor']);
+        Route::post('2fa/disable', [AuthController::class, 'disableTwoFactor']);
     });
 });
 

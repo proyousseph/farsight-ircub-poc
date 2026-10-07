@@ -25,9 +25,18 @@ return Application::configure(basePath: dirname(__DIR__))
             'password.changed' => \App\Http\Middleware\EnsurePasswordChanged::class,
         ]);
 
+        // Bearer token cookie must remain readable by AttachBearerFromCookie
+        // (still HttpOnly / Secure / SameSite — not accessible to JS).
+        $middleware->encryptCookies(except: [
+            \App\Support\AuthCookie::NAME,
+        ]);
+
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \App\Http\Middleware\SecurityHeaders::class,
+            \App\Http\Middleware\AttachBearerFromCookie::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AuthCookie;
 use App\Support\PasswordPolicy;
+use App\Support\Totp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -40,32 +42,9 @@ class AuthController extends Controller
         $twoFactorOn = $twoFactorGlobal && $user->two_factor_enabled;
 
         if ($twoFactorOn) {
-            $stubAllowed = (bool) config('ircub.two_factor.allow_stub', false);
-            $expected = (string) (config('ircub.two_factor.demo_otp') ?? '');
-
-            if (! $stubAllowed || $expected === '') {
-                throw ValidationException::withMessages([
-                    'email' => ['Two-factor authentication is required but not configured for this environment.'],
-                ]);
-            }
-
-            $otp = $credentials['otp'] ?? null;
-            if (! $otp) {
-                return response()->json([
-                    'message' => 'Two-factor authentication required.',
-                    'requires_2fa' => true,
-                    'two_factor' => [
-                        'method' => 'otp_stub',
-                        'hint' => 'Enter the one-time code configured for this environment.',
-                    ],
-                    'password_policy' => PasswordPolicy::meta(),
-                ], 401);
-            }
-
-            if (! hash_equals($expected, $otp)) {
-                throw ValidationException::withMessages([
-                    'otp' => ['Invalid two-factor code.'],
-                ]);
+            $challenge = $this->challengeTwoFactor($user, $credentials['otp'] ?? null);
+            if ($challenge !== null) {
+                return $challenge;
             }
         }
 
@@ -75,10 +54,11 @@ class AuthController extends Controller
             'message' => 'Login successful.',
             'token' => $token,
             'token_type' => 'Bearer',
+            'cookie_auth' => true,
             'user' => $user->toAuthArray(),
             'password_policy' => PasswordPolicy::meta(),
             'two_factor_verified' => $twoFactorOn,
-        ]);
+        ])->withCookie(AuthCookie::make($token));
     }
 
     public function me(Request $request): JsonResponse
@@ -119,12 +99,130 @@ class AuthController extends Controller
         ]);
     }
 
+    public function setupTwoFactor(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $secret = Totp::generateSecret();
+        $user->two_factor_secret = $secret;
+        $user->two_factor_confirmed_at = null;
+        $user->two_factor_enabled = false;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Scan this secret in your authenticator app, then confirm with a code.',
+            'secret' => $secret,
+            'otpauth_url' => Totp::otpAuthUri($secret, $user->email, config('app.name', 'IRCUB')),
+        ]);
+    }
+
+    public function confirmTwoFactor(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $data = $request->validate([
+            'otp' => ['required', 'string', 'max:12'],
+        ]);
+
+        if (! $user->two_factor_secret || ! Totp::verify($user->two_factor_secret, $data['otp'])) {
+            throw ValidationException::withMessages([
+                'otp' => ['Invalid authenticator code.'],
+            ]);
+        }
+
+        $user->two_factor_enabled = true;
+        $user->two_factor_confirmed_at = now();
+        $user->save();
+
+        return response()->json([
+            'message' => 'Two-factor authentication enabled.',
+            'user' => $user->fresh()->toAuthArray(),
+        ]);
+    }
+
+    public function disableTwoFactor(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $data = $request->validate([
+            'password' => ['required', 'string'],
+            'otp' => ['nullable', 'string', 'max:12'],
+        ]);
+
+        if (! Hash::check($data['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['Password is incorrect.'],
+            ]);
+        }
+
+        if ($user->two_factor_secret && $user->two_factor_confirmed_at) {
+            if (empty($data['otp']) || ! Totp::verify($user->two_factor_secret, $data['otp'])) {
+                throw ValidationException::withMessages([
+                    'otp' => ['Invalid authenticator code.'],
+                ]);
+            }
+        }
+
+        $user->two_factor_enabled = false;
+        $user->two_factor_secret = null;
+        $user->two_factor_confirmed_at = null;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Two-factor authentication disabled.',
+            'user' => $user->fresh()->toAuthArray(),
+        ]);
+    }
+
     public function logout(Request $request): JsonResponse
     {
         $request->user()?->currentAccessToken()?->delete();
 
         return response()->json([
             'message' => 'Logged out successfully.',
+        ])->withCookie(AuthCookie::forget());
+    }
+
+    private function challengeTwoFactor(User $user, ?string $otp): ?JsonResponse
+    {
+        $hasTotp = filled($user->two_factor_secret) && filled($user->two_factor_confirmed_at);
+        $stubAllowed = (bool) config('ircub.two_factor.allow_stub', false);
+        $stubExpected = (string) (config('ircub.two_factor.demo_otp') ?? '');
+
+        if (! $otp) {
+            return response()->json([
+                'message' => 'Two-factor authentication required.',
+                'requires_2fa' => true,
+                'two_factor' => [
+                    'method' => $hasTotp ? 'totp' : ($stubAllowed ? 'otp_stub' : 'totp'),
+                    'hint' => $hasTotp
+                        ? 'Enter the code from your authenticator app.'
+                        : ($stubAllowed
+                            ? 'Enter the local demo OTP, or complete TOTP setup.'
+                            : 'Complete TOTP setup before signing in.'),
+                ],
+                'password_policy' => PasswordPolicy::meta(),
+            ], 401);
+        }
+
+        if ($hasTotp) {
+            if (! Totp::verify($user->two_factor_secret, $otp)) {
+                throw ValidationException::withMessages([
+                    'otp' => ['Invalid two-factor code.'],
+                ]);
+            }
+
+            return null;
+        }
+
+        if ($stubAllowed && $stubExpected !== '' && hash_equals($stubExpected, $otp)) {
+            return null;
+        }
+
+        throw ValidationException::withMessages([
+            'otp' => $stubAllowed
+                ? ['Invalid two-factor code.']
+                : ['Two-factor authentication is required. Complete TOTP setup first.'],
         ]);
     }
 }

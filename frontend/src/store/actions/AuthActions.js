@@ -33,6 +33,7 @@ export function signupAction(email, password, navigate) {
 
 export function Logout(navigate) {
   return (dispatch) => {
+    sessionStorage.removeItem('userDetails');
     localStorage.removeItem('userDetails');
     dispatch({ type: LOGOUT_ACTION });
     if (navigate) {

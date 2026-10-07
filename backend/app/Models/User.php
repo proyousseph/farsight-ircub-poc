@@ -23,12 +23,15 @@ class User extends Authenticatable
         'is_active',
         'must_change_password',
         'two_factor_enabled',
+        'two_factor_secret',
+        'two_factor_confirmed_at',
         'payer_id',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
     ];
 
     protected function casts(): array
@@ -39,6 +42,8 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
             'two_factor_enabled' => 'boolean',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_confirmed_at' => 'datetime',
         ];
     }
 
@@ -88,6 +93,7 @@ class User extends Authenticatable
             'is_active' => $this->is_active,
             'must_change_password' => (bool) $this->must_change_password,
             'two_factor_enabled' => (bool) $this->two_factor_enabled,
+            'two_factor_confirmed' => filled($this->two_factor_confirmed_at),
             'payer_id' => $this->payer_id,
             'roles' => $roles->map(fn (Role $role) => [
                 'id' => $role->id,

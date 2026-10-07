@@ -14,7 +14,8 @@ return [
     ],
 
     /*
-    | Optional 2FA stub — only for local/testing POC. Production must use a real provider.
+    | 2FA: TOTP is the production path. Stub OTP is local/testing fallback only
+    | for users who have two_factor_enabled but have not confirmed a TOTP secret.
     */
     'two_factor' => [
         'enabled_globally' => (bool) env('IRCUB_2FA_ENABLED', true),
@@ -23,6 +24,10 @@ return [
             'IRCUB_2FA_ALLOW_STUB',
             in_array(env('APP_ENV', 'production'), ['local', 'testing'], true)
         ),
+    ],
+
+    'auth_cookie' => [
+        'name' => 'ircub_token',
     ],
 
     /*
