@@ -49,7 +49,7 @@ class ChannelPaymentController extends Controller
             ->when($request->filled('channel'), fn ($q) => $q->where('channel', $request->string('channel')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->latest()
-            ->paginate((int) $request->integer('per_page', 15));
+            ->paginate(\App\Support\Pagination::perPage($request));
 
         return response()->json($items);
     }
@@ -104,13 +104,26 @@ class ChannelPaymentController extends Controller
 
     public function retryDue(Request $request): JsonResponse
     {
-        $result = $this->channels->processDueRetries($request->user()?->id);
+        $sync = $request->boolean('sync', false);
+
+        if ($sync || config('queue.default') === 'sync') {
+            $result = $this->channels->processDueRetries($request->user()?->id);
+
+            return response()->json([
+                'message' => 'Due retries processed.',
+                'queued' => false,
+                'processed' => $result['processed'],
+                'items' => $result['items'],
+            ]);
+        }
+
+        \App\Jobs\ProcessChannelRetriesJob::dispatch($request->user()?->id);
 
         return response()->json([
-            'message' => 'Due retries processed.',
-            'processed' => $result['processed'],
-            'items' => $result['items'],
-        ]);
+            'message' => 'Due channel retries queued on Redis.',
+            'queued' => true,
+            'queue' => 'channels',
+        ], 202);
     }
 
     public function callback(Request $request): JsonResponse
@@ -137,7 +150,7 @@ class ChannelPaymentController extends Controller
         $items = SupervisorNotification::query()
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->string('type')))
             ->latest()
-            ->paginate((int) $request->integer('per_page', 20));
+            ->paginate(\App\Support\Pagination::perPage($request, 20));
 
         return response()->json($items);
     }

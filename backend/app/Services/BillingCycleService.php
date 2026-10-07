@@ -17,7 +17,6 @@ class BillingCycleService
     public function __construct(
         private TariffCalculator $tariffs,
         private BillPdfService $pdfs,
-        private MockNotificationService $notifications,
     ) {
     }
 
@@ -168,10 +167,9 @@ class BillingCycleService
 
                 if (! $abnormal) {
                     $bill->pdf_path = $this->pdfs->generate($bill);
-                    $notify = $this->notifications->notifyBill($bill);
-                    $bill->notification_status = $notify['status'];
-                    $bill->notification_log = $notify;
+                    $bill->notification_status = 'QUEUED';
                     $bill->save();
+                    \App\Jobs\NotifyWaterBillJob::dispatch($bill->id);
                 }
 
                 AuditLog::record('WaterBill', $bill->id, 'CREATED', null, $bill->toArray(), $userId);
@@ -211,12 +209,11 @@ class BillingCycleService
         $bill->status = 'RELEASED';
         $bill->released_at = now();
         $bill->pdf_path = $this->pdfs->generate($bill);
-        $notify = $this->notifications->notifyBill($bill);
-        $bill->notification_status = $notify['status'];
-        $bill->notification_log = $notify;
+        $bill->notification_status = 'QUEUED';
         $bill->save();
+        \App\Jobs\NotifyWaterBillJob::dispatch($bill->id);
 
-        AuditLog::record('WaterBill', $bill->id, 'RELEASED', $before, $bill->toArray(), $userId);
+        AuditLog::record('WaterBill', $bill->id, 'RELEASED', $before, $bill->fresh()->toArray(), $userId);
 
         return $bill->fresh(['payer', 'waterAccount']);
     }

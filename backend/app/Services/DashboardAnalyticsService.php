@@ -24,7 +24,10 @@ class DashboardAnalyticsService
      */
     public function snapshot(int $cacheSeconds = 30): array
     {
-        return Cache::remember(DashboardAggregationService::CACHE_KEY, $cacheSeconds, function () use ($cacheSeconds) {
+        $key = DashboardAggregationService::CACHE_KEY;
+        $cacheHit = Cache::has($key);
+
+        $payload = Cache::remember($key, $cacheSeconds, function () use ($cacheSeconds) {
             if (DashboardDailyAggregate::query()->count() === 0) {
                 $this->aggregation->rebuild();
             }
@@ -38,30 +41,34 @@ class DashboardAnalyticsService
                 ->whereDate('stat_date', '<=', $to)
                 ->get();
 
-            $kpis = $this->kpis($daily);
-            $trends = $this->trends($daily);
-            $targets = $this->collectionsVsTargets($daily);
-            $water = $this->waterEfficiency();
-            $forecast = $this->nextQuarterForecast($daily);
-            $alerts = $this->alerts($daily);
-
             return [
                 'generated_at' => now()->toIso8601String(),
                 'currency' => 'USD',
-                'kpis' => $kpis,
-                'trends' => $trends,
-                'targets' => $targets,
-                'water' => $water,
-                'forecast' => $forecast,
-                'alerts' => $alerts,
+                'kpis' => $this->kpis($daily),
+                'trends' => $this->trends($daily),
+                'targets' => $this->collectionsVsTargets($daily),
+                'water' => $this->waterEfficiency(),
+                'forecast' => $this->nextQuarterForecast($daily),
+                'alerts' => $this->alerts($daily),
                 'meta' => [
                     'aggregate_rows' => $daily->count(),
                     'cache_ttl_seconds' => $cacheSeconds,
                     'poll_hint_seconds' => 30,
                     'model' => 'ordinary_least_squares_linear_regression',
+                    'source' => 'dashboard_daily_aggregates',
                 ],
             ];
         });
+
+        // Attach live cache diagnostics (not stored inside the cached body forever).
+        $payload['meta']['cache'] = [
+            'hit' => $cacheHit,
+            'ttl_seconds' => $cacheSeconds,
+            'driver' => (string) config('cache.default'),
+            'key' => $key,
+        ];
+
+        return $payload;
     }
 
     /**

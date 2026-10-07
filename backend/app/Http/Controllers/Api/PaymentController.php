@@ -46,7 +46,7 @@ class PaymentController extends Controller
             ->when($request->filled('paid_from'), fn ($q) => $q->whereDate('paid_at', '>=', $request->date('paid_from')))
             ->when($request->filled('paid_to'), fn ($q) => $q->whereDate('paid_at', '<=', $request->date('paid_to')))
             ->latest('paid_at')
-            ->paginate((int) $request->integer('per_page', 15));
+            ->paginate(\App\Support\Pagination::perPage($request));
 
         return response()->json($payments);
     }

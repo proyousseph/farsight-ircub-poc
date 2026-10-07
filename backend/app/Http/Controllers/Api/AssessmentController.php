@@ -41,7 +41,7 @@ class AssessmentController extends Controller
             ->when($request->filled('due_from'), fn ($q) => $q->whereDate('due_date', '>=', $request->date('due_from')))
             ->when($request->filled('due_to'), fn ($q) => $q->whereDate('due_date', '<=', $request->date('due_to')))
             ->latest()
-            ->paginate((int) $request->integer('per_page', 15));
+            ->paginate(\App\Support\Pagination::perPage($request));
 
         return response()->json($assessments);
     }

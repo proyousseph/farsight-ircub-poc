@@ -24,7 +24,7 @@ class FmisController extends Controller
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('date'), fn ($q) => $q->whereDate('journal_date', $request->date('date')))
             ->latest()
-            ->paginate((int) $request->integer('per_page', 15));
+            ->paginate(\App\Support\Pagination::perPage($request));
 
         return response()->json($batches);
     }

@@ -23,7 +23,7 @@ class PayerController extends Controller
                 $q->where('id', $user->payer_id ?: 0);
             })
             ->latest()
-            ->paginate((int) $request->integer('per_page', 15));
+            ->paginate(\App\Support\Pagination::perPage($request));
 
         return response()->json($payers);
     }
