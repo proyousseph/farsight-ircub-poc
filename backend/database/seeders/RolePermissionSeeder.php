@@ -1,0 +1,203 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Permission;
+use App\Models\Role;
+use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+
+class RolePermissionSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $permissions = [
+            // Users & roles
+            ['name' => 'Manage users', 'slug' => 'users.manage', 'module' => 'users'],
+            ['name' => 'Manage roles', 'slug' => 'roles.manage', 'module' => 'users'],
+            ['name' => 'Manage system config', 'slug' => 'config.manage', 'module' => 'config'],
+
+            // Registry
+            ['name' => 'Register payers', 'slug' => 'payers.create', 'module' => 'registry'],
+            ['name' => 'View payers', 'slug' => 'payers.view', 'module' => 'registry'],
+            ['name' => 'View own profile', 'slug' => 'payers.view_own', 'module' => 'registry'],
+
+            // Revenue
+            ['name' => 'Manage revenue types', 'slug' => 'revenue_types.manage', 'module' => 'revenue'],
+            ['name' => 'Create assessments', 'slug' => 'assessments.create', 'module' => 'revenue'],
+            ['name' => 'View assessments', 'slug' => 'assessments.view', 'module' => 'revenue'],
+            ['name' => 'View own assessments', 'slug' => 'assessments.view_own', 'module' => 'revenue'],
+            ['name' => 'Capture payments', 'slug' => 'payments.capture', 'module' => 'revenue'],
+            ['name' => 'View payments', 'slug' => 'payments.view', 'module' => 'revenue'],
+            ['name' => 'View own payments', 'slug' => 'payments.view_own', 'module' => 'revenue'],
+            ['name' => 'Approve reversals', 'slug' => 'payments.approve_reversal', 'module' => 'revenue'],
+            ['name' => 'Request reversals', 'slug' => 'payments.request_reversal', 'module' => 'revenue'],
+
+            // Water
+            ['name' => 'Capture meter readings', 'slug' => 'meters.capture', 'module' => 'water'],
+            ['name' => 'Run billing cycles', 'slug' => 'billing.run', 'module' => 'water'],
+            ['name' => 'View water bills', 'slug' => 'bills.view', 'module' => 'water'],
+            ['name' => 'View own water bills', 'slug' => 'bills.view_own', 'module' => 'water'],
+
+            // Audit / reports / FMIS
+            ['name' => 'View audit logs', 'slug' => 'audit.view', 'module' => 'audit'],
+            ['name' => 'View reports', 'slug' => 'reports.view', 'module' => 'reports'],
+            ['name' => 'View dashboard', 'slug' => 'dashboard.view', 'module' => 'dashboard'],
+            ['name' => 'Post to FMIS', 'slug' => 'fmis.post', 'module' => 'fmis'],
+            ['name' => 'View FMIS reconciliation', 'slug' => 'fmis.reconcile', 'module' => 'fmis'],
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::query()->updateOrCreate(
+                ['slug' => $permission['slug']],
+                $permission
+            );
+        }
+
+        $roleMap = [
+            'system-administrator' => [
+                'name' => 'System Administrator',
+                'description' => 'Full system configuration and user administration.',
+                'permissions' => Permission::query()->pluck('slug')->all(),
+            ],
+            'revenue-supervisor' => [
+                'name' => 'Revenue Supervisor',
+                'description' => 'View, approve and reverse revenue transactions.',
+                'permissions' => [
+                    'payers.view',
+                    'assessments.view',
+                    'payments.view',
+                    'payments.approve_reversal',
+                    'payments.request_reversal',
+                    'revenue_types.manage',
+                    'reports.view',
+                    'dashboard.view',
+                    'fmis.post',
+                    'fmis.reconcile',
+                    'audit.view',
+                ],
+            ],
+            'revenue-officer' => [
+                'name' => 'Revenue Officer',
+                'description' => 'Register payers, create assessments and capture payments.',
+                'permissions' => [
+                    'payers.create',
+                    'payers.view',
+                    'assessments.create',
+                    'assessments.view',
+                    'payments.capture',
+                    'payments.view',
+                    'payments.request_reversal',
+                    'dashboard.view',
+                ],
+            ],
+            'water-billing-officer' => [
+                'name' => 'Water Billing Officer',
+                'description' => 'Capture meter readings and run billing cycles.',
+                'permissions' => [
+                    'payers.view',
+                    'meters.capture',
+                    'billing.run',
+                    'bills.view',
+                    'payments.view',
+                    'dashboard.view',
+                ],
+            ],
+            'auditor' => [
+                'name' => 'Auditor',
+                'description' => 'View-only access to transactions, audit logs and reports.',
+                'permissions' => [
+                    'payers.view',
+                    'assessments.view',
+                    'payments.view',
+                    'bills.view',
+                    'audit.view',
+                    'reports.view',
+                    'dashboard.view',
+                    'fmis.reconcile',
+                ],
+            ],
+            'taxpayer-customer' => [
+                'name' => 'Taxpayer / Customer',
+                'description' => 'Self-service access to own bills, assessments and payments.',
+                'permissions' => [
+                    'payers.view_own',
+                    'assessments.view_own',
+                    'payments.view_own',
+                    'bills.view_own',
+                    'payments.capture',
+                ],
+            ],
+        ];
+
+        foreach ($roleMap as $slug => $data) {
+            /** @var Role $role */
+            $role = Role::query()->updateOrCreate(
+                ['slug' => $slug],
+                [
+                    'name' => $data['name'],
+                    'description' => $data['description'],
+                    'is_system' => true,
+                    'is_active' => true,
+                ]
+            );
+
+            $permissionIds = Permission::query()
+                ->whereIn('slug', $data['permissions'])
+                ->pluck('id');
+
+            $role->permissions()->sync($permissionIds);
+        }
+
+        $demoUsers = [
+            [
+                'name' => 'System Administrator',
+                'email' => 'admin@ircub.test',
+                'role' => 'system-administrator',
+            ],
+            [
+                'name' => 'Revenue Supervisor',
+                'email' => 'supervisor@ircub.test',
+                'role' => 'revenue-supervisor',
+            ],
+            [
+                'name' => 'Revenue Officer',
+                'email' => 'officer@ircub.test',
+                'role' => 'revenue-officer',
+            ],
+            [
+                'name' => 'Water Billing Officer',
+                'email' => 'water@ircub.test',
+                'role' => 'water-billing-officer',
+            ],
+            [
+                'name' => 'Auditor User',
+                'email' => 'auditor@ircub.test',
+                'role' => 'auditor',
+            ],
+            [
+                'name' => 'Demo Taxpayer',
+                'email' => 'taxpayer@ircub.test',
+                'role' => 'taxpayer-customer',
+            ],
+        ];
+
+        foreach ($demoUsers as $demo) {
+            /** @var User $user */
+            $user = User::query()->updateOrCreate(
+                ['email' => $demo['email']],
+                [
+                    'name' => $demo['name'],
+                    'phone' => '25261'.fake()->numerify('#######'),
+                    'password' => Hash::make('Password@123'),
+                    'is_active' => true,
+                    'email_verified_at' => now(),
+                ]
+            );
+
+            $roleId = Role::query()->where('slug', $demo['role'])->value('id');
+            $user->roles()->sync([$roleId]);
+        }
+    }
+}
