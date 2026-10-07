@@ -151,9 +151,9 @@ Progress below follows the **document modules**, independent of the day labels a
 
 - [x] ERD — see [`docs/ERD.md`](docs/ERD.md)
 - [x] OpenAPI/Swagger + Postman — see [`docs/API.md`](docs/API.md), UI at `/docs/api`
+- [x] Automated tests (PHPUnit + module smoke scripts) — see [Testing](#testing)
 - [ ] Dockerized / Nginx deploy to Contabo
 - [ ] HTTPS demo on `ircub.waagefaal.so`
-- [ ] Broader automated tests + run instructions in README
 - [ ] README final pass
 
 ---
@@ -166,6 +166,7 @@ Progress below follows the **document modules**, independent of the day labels a
 | Entity Relationship Diagram | [`docs/ERD.md`](docs/ERD.md) |
 | API (OpenAPI + Postman) | [`docs/API.md`](docs/API.md) · [`docs/openapi.yaml`](docs/openapi.yaml) |
 | Swagger UI (local) | http://127.0.0.1:8001/docs/api |
+| Testing guide | [`docs/TESTING.md`](docs/TESTING.md) · [Testing](#testing) in README |
 
 ---
 
@@ -231,6 +232,60 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 
 ---
 
+## Testing
+
+Two layers of automated checks are included.
+
+### A) PHPUnit (isolated, no Docker required)
+
+Uses an in-memory SQLite database (`phpunit.xml`). Covers auth, payers, FMIS post/reverse/recon, dashboard forecast/alerts, and API docs routes.
+
+```bash
+cd backend
+composer install
+php artisan test
+```
+
+Or:
+
+```bash
+cd backend
+composer test
+```
+
+**Last run:** 16 tests, 73 assertions — all passed.
+
+### B) Module smoke scripts (needs Postgres + Redis)
+
+These hit the real local `.env` database (start Docker first: `docker compose up -d`).
+
+```bash
+cd backend
+php scripts/verify_day5.php      # channel FX / callback / retries / recon
+php scripts/verify_module6.php   # FMIS posting / reverse / recon
+php scripts/verify_module7.php   # dashboard aggregates / OLS / alerts
+```
+
+**Last run:** Day 5 10/10 · Module 6 13/13 · Module 7 12/12.
+
+### Run everything
+
+Windows (PowerShell):
+
+```powershell
+cd backend
+.\scripts\run_all_tests.ps1
+```
+
+macOS / Linux:
+
+```bash
+cd backend
+bash scripts/run_all_tests.sh
+```
+
+---
+
 ## Demo users
 
 Password for all accounts: **`Password@123`**
@@ -286,12 +341,7 @@ Mock FMIS provider (for demos / local inspection):
 | `GET` | `/mock-api/fmis/journals?date=YYYY-MM-DD` |
 | `POST` | `/mock-api/fmis/journals/reverse` |
 
-Verify locally:
-
-```bash
-cd backend
-php scripts/verify_module6.php
-```
+Smoke check: `php scripts/verify_module6.php` (see [Testing](#testing)).
 
 UI: login as `supervisor@ircub.test` → **FMIS Journals**.
 
@@ -307,12 +357,7 @@ Requires `dashboard.view` (admin, supervisor, officer, water officer, auditor).
 | `GET` | `/api/dashboard/alerts` | Lightweight poll endpoint for alerts + KPIs |
 | `POST` | `/api/dashboard/refresh` | Rebuild daily aggregates from payments |
 
-Verify locally:
-
-```bash
-cd backend
-php scripts/verify_module7.php
-```
+Smoke check: `php scripts/verify_module7.php` (see [Testing](#testing)).
 
 UI: login as `admin@ircub.test` or `supervisor@ircub.test` → **Dashboard**.
 
