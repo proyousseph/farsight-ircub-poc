@@ -1,8 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import ReactApexChart from 'react-apexcharts';
 import { getDashboard, getDashboardAlerts, refreshDashboard } from '../../../services/DashboardService';
 import { hasPermission } from '../../../services/AuthService';
+
+const ReactApexChart = lazy(() => import('react-apexcharts'));
+
+const ChartFallback = () => (
+  <div className="text-muted py-5 text-center">Loading chart…</div>
+);
 
 const money = (n) =>
   Number(n || 0).toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -137,6 +142,9 @@ const ExecutiveDashboard = () => {
           <p className="mb-0 text-muted">
             Collections, water efficiency, OLS next-quarter forecast, and anomaly alerts.
             {lastPoll ? ` · Last update ${lastPoll}` : ''}
+            {data?.meta?.cache
+              ? ` · Cache ${data.meta.cache.hit ? 'HIT' : 'MISS'} (${data.meta.cache.driver}, TTL ${data.meta.cache.ttl_seconds}s)`
+              : ''}
           </p>
         </div>
         <div className="d-flex gap-2">
@@ -180,7 +188,9 @@ const ExecutiveDashboard = () => {
             </div>
             <div className="card-body">
               {trendOptions && typeSeries.length > 0 ? (
-                <ReactApexChart options={trendOptions} series={typeSeries} type="line" height={320} />
+                <Suspense fallback={<ChartFallback />}>
+                  <ReactApexChart options={trendOptions} series={typeSeries} type="line" height={320} />
+                </Suspense>
               ) : (
                 <p className="text-muted mb-0">No trend data yet.</p>
               )}
@@ -213,7 +223,9 @@ const ExecutiveDashboard = () => {
             </div>
             <div className="card-body">
               {trendOptions && channelSeries.length > 0 ? (
-                <ReactApexChart options={trendOptions} series={channelSeries} type="line" height={300} />
+                <Suspense fallback={<ChartFallback />}>
+                  <ReactApexChart options={trendOptions} series={channelSeries} type="line" height={300} />
+                </Suspense>
               ) : (
                 <p className="text-muted mb-0">No channel trend data yet.</p>
               )}
@@ -275,7 +287,9 @@ const ExecutiveDashboard = () => {
             </div>
             <div className="card-body">
               {forecastOptions ? (
-                <ReactApexChart options={forecastOptions.options} series={forecastOptions.series} type="line" height={320} />
+                <Suspense fallback={<ChartFallback />}>
+                  <ReactApexChart options={forecastOptions.options} series={forecastOptions.series} type="line" height={320} />
+                </Suspense>
               ) : (
                 <p className="text-muted mb-0">Forecast unavailable.</p>
               )}

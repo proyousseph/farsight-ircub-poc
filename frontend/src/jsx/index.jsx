@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { Suspense, lazy, useContext } from "react";
 import { Routes, Route, Outlet, Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
@@ -11,21 +11,27 @@ import Footer from "./layouts/Footer";
 import ScrollToTop from "./pages/ScrollToTop";
 import { ThemeContext } from "../context/ThemeContext";
 
-import ExecutiveDashboard from "./components/Dashboard/ExecutiveDashboard";
-import PayersList from "./components/Payers/PayersList";
-import PayerCreate from "./components/Payers/PayerCreate";
-import PayerProfile from "./components/Payers/PayerProfile";
-import AssessmentsPage from "./components/Revenue/AssessmentsPage";
-import PaymentsPage from "./components/Revenue/PaymentsPage";
-import MeterReadingsPage from "./components/Water/MeterReadingsPage";
-import BillingCyclesPage from "./components/Water/BillingCyclesPage";
-import WaterBillsPage from "./components/Water/WaterBillsPage";
-import ChannelPaymentsPage from "./components/Channels/ChannelPaymentsPage";
-import ReconciliationPage from "./components/Channels/ReconciliationPage";
-import FmisPage from "./components/Fmis/FmisPage";
-import UsersRolesPage from "./components/Admin/UsersRolesPage";
-import AuditLogsPage from "./components/Admin/AuditLogsPage";
-import SystemConfigPage from "./components/Admin/SystemConfigPage";
+const ExecutiveDashboard = lazy(() => import("./components/Dashboard/ExecutiveDashboard"));
+const PayersList = lazy(() => import("./components/Payers/PayersList"));
+const PayerCreate = lazy(() => import("./components/Payers/PayerCreate"));
+const PayerProfile = lazy(() => import("./components/Payers/PayerProfile"));
+const AssessmentsPage = lazy(() => import("./components/Revenue/AssessmentsPage"));
+const PaymentsPage = lazy(() => import("./components/Revenue/PaymentsPage"));
+const MeterReadingsPage = lazy(() => import("./components/Water/MeterReadingsPage"));
+const BillingCyclesPage = lazy(() => import("./components/Water/BillingCyclesPage"));
+const WaterBillsPage = lazy(() => import("./components/Water/WaterBillsPage"));
+const ChannelPaymentsPage = lazy(() => import("./components/Channels/ChannelPaymentsPage"));
+const ReconciliationPage = lazy(() => import("./components/Channels/ReconciliationPage"));
+const FmisPage = lazy(() => import("./components/Fmis/FmisPage"));
+const UsersRolesPage = lazy(() => import("./components/Admin/UsersRolesPage"));
+const AuditLogsPage = lazy(() => import("./components/Admin/AuditLogsPage"));
+const SystemConfigPage = lazy(() => import("./components/Admin/SystemConfigPage"));
+
+const PageFallback = () => (
+  <div className="d-flex justify-content-center align-items-center py-5">
+    <div className="spinner-border text-primary" role="status" aria-label="Loading" />
+  </div>
+);
 
 const Markup = () => {
   const routes = [
@@ -62,7 +68,11 @@ const Markup = () => {
       <Routes>
         <Route element={<MainLayout />}>
           {routes.map((data, i) => (
-            <Route key={i} path={data.url} element={data.component} />
+            <Route
+              key={i}
+              path={data.url}
+              element={<Suspense fallback={<PageFallback />}>{data.component}</Suspense>}
+            />
           ))}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>

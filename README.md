@@ -358,6 +358,36 @@ UI: login as `admin@ircub.test` or `supervisor@ircub.test` → **Dashboard**.
 
 ---
 
+## Performance notes (POC scale)
+
+Credible posture for the brief’s “high-volume / real-time” language:
+
+| Area | What we did |
+|---|---|
+| Dashboard | Pre-aggregated `dashboard_daily_aggregates` + Redis snapshot cache; API returns `meta.cache.hit` / TTL / driver |
+| Lists | Server-side pagination with hard cap (`per_page` max 100) on payments, assessments, payers, channels, FMIS, audit |
+| Indexes | Composite indexes on payments / assessments / audit for common filter+sort paths |
+| Queues | Redis queues: channel retries (`channels`), FMIS daily batch (`fmis`), bill SMS/email notify (`notifications`), dashboard rebuild (`dashboard`) |
+| Scheduler | `routes/console.php`: channel retries every minute; FMIS daily 01:15; dashboard rebuild 01:45 |
+| Frontend | Route-level `React.lazy` + ApexCharts loaded only on the dashboard |
+
+Local workers:
+
+```bash
+# Terminal A — API
+php artisan serve --host=127.0.0.1 --port=8001
+
+# Terminal B — queue worker (Redis)
+php artisan queue:work redis --queue=channels,fmis,notifications,dashboard,default
+
+# Terminal C — scheduler (optional)
+php artisan schedule:work
+```
+
+Channel retries API: `POST /api/channel/retries` queues on Redis, or processes inline when `QUEUE_CONNECTION=sync` / `?sync=1`.
+
+---
+
 ## Assumptions & limitations
 
 - The brief allows a short take-home window; work is organized and named by **module**, not by calendar day.
@@ -369,6 +399,7 @@ UI: login as `admin@ircub.test` or `supervisor@ircub.test` → **Dashboard**.
 - Optional 2FA is a **stub** (shared demo OTP), not a production TOTP/SMS product.
 - Live frontend routes are IRCUB-only; unused Dompet template page sources were removed from the tree.
 - Local `docker-compose.yml` currently runs Postgres + Redis. Full app containers + HTTPS on Contabo remain the last deploy item.
+- Bill notifications are queued (`NotifyWaterBillJob`); with `QUEUE_CONNECTION=sync` they still run inline for tests/demo.
 
 ---
 
