@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             PayerSeeder::class,
             RevenueSeeder::class,
             WaterBillingSeeder::class,
+            GlMappingSeeder::class,
         ]);
 
 

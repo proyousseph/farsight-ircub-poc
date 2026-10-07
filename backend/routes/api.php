@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingCycleController;
 use App\Http\Controllers\Api\ChannelPaymentController;
 use App\Http\Controllers\Api\ChannelReconciliationController;
+use App\Http\Controllers\Api\FmisController;
+use App\Http\Controllers\Api\GlMappingController;
 use App\Http\Controllers\Api\MeterReadingController;
 use App\Http\Controllers\Api\PayerController;
 use App\Http\Controllers\Api\PaymentController;
@@ -109,4 +111,25 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:channels.reconcile|fmis.reconcile');
     Route::get('channel/reconciliation/{reconciliationRun}', [ChannelReconciliationController::class, 'show'])
         ->middleware('permission:channels.reconcile|fmis.reconcile');
+
+    // Module 6 — FMIS posting & reconciliation
+    Route::get('gl-mappings', [GlMappingController::class, 'index'])
+        ->middleware('permission:fmis.post|fmis.reconcile|revenue_types.manage');
+    Route::post('gl-mappings', [GlMappingController::class, 'store'])
+        ->middleware('permission:revenue_types.manage|fmis.post');
+    Route::put('gl-mappings/{glMapping}', [GlMappingController::class, 'update'])
+        ->middleware('permission:revenue_types.manage|fmis.post');
+
+    Route::get('fmis/batches', [FmisController::class, 'batches'])
+        ->middleware('permission:fmis.post|fmis.reconcile');
+    Route::post('fmis/batches', [FmisController::class, 'createBatch'])
+        ->middleware('permission:fmis.post');
+    Route::get('fmis/batches/{fmisJournalBatch}', [FmisController::class, 'show'])
+        ->middleware('permission:fmis.post|fmis.reconcile');
+    Route::post('fmis/batches/{fmisJournalBatch}/post', [FmisController::class, 'post'])
+        ->middleware('permission:fmis.post');
+    Route::post('fmis/batches/{fmisJournalBatch}/reverse', [FmisController::class, 'reverse'])
+        ->middleware('permission:fmis.post|payments.approve_reversal');
+    Route::get('fmis/reconciliation', [FmisController::class, 'reconcile'])
+        ->middleware('permission:fmis.reconcile|fmis.post');
 });
