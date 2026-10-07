@@ -66,7 +66,7 @@ The POC brief allows **5 working days**. Work is grouped by delivery days, not b
 | **2** | Taxpayer/customer registry + tax assessment & collection (control numbers, payments, CSV, audit, filters) | Done |
 | **3** | Water utility billing (tariffs, readings, billing cycle, PDF/SMS mock, statements, abnormal holds) | Done |
 | **4** | Payment channel integration (FX rates, bank/MM mocks, callbacks, retries, channel reconciliation UI) | Done |
-| **5** | FMIS posting & reconciliation → executive dashboard + forecast → Contabo deploy + docs polish | Module 6 verified; Module 7 next |
+| **5** | FMIS posting & reconciliation → executive dashboard + forecast → Contabo deploy + docs polish | Modules 6–7 verified; deploy next |
 
 ---
 
@@ -136,13 +136,16 @@ Progress below follows the **document modules**, independent of the day labels a
 - [x] Frontend: **FMIS Journals** (batches, GL mappings, reconciliation tabs)
 - [x] Verified with `backend/scripts/verify_module6.php` (13/13) + HTTP API checks (matched totals after reverse/repost and after `cache:clear`)
 
-### Module 7 — Dashboard with Predictive Analytics — Next
+### Module 7 — Dashboard with Predictive Analytics — Done & verified
 
-- [ ] Revenue trends by type and channel
-- [ ] Collections vs targets; water billed vs collected
-- [ ] Next-quarter revenue forecast (linear regression or better)
-- [ ] Alerts for unusual activity
-- [ ] Performance-minded aggregation / async updates where practical
+- [x] Revenue trends over time by revenue type and channel (line charts)
+- [x] Collections vs month/quarter targets; water billed vs collected (efficiency %)
+- [x] Next-quarter forecast via ordinary least squares (OLS) linear regression on monthly totals
+- [x] Alerts for collection drops, reversal spikes, and channel failures (+ all-clear)
+- [x] Pre-aggregated `dashboard_daily_aggregates` + short Redis cache for performance
+- [x] Async UI updates via 30s polling (`/api/dashboard/alerts`)
+- [x] Frontend **Executive Dashboard** replaces Dompet demo home (`/dashboard`)
+- [x] Verified with `backend/scripts/verify_module7.php` (12/12) + HTTP API checks
 
 ### Deploy & polish — Planned
 
@@ -280,15 +283,38 @@ UI: login as `supervisor@ircub.test` → **FMIS Journals**.
 
 ---
 
+## Module 7 — Dashboard API (summary)
+
+Requires `dashboard.view` (admin, supervisor, officer, water officer, auditor).
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/dashboard` | Full snapshot: KPIs, trends, targets, water, OLS forecast, alerts |
+| `GET` | `/api/dashboard/alerts` | Lightweight poll endpoint for alerts + KPIs |
+| `POST` | `/api/dashboard/refresh` | Rebuild daily aggregates from payments |
+
+Verify locally:
+
+```bash
+cd backend
+php scripts/verify_module7.php
+```
+
+UI: login as `admin@ircub.test` or `supervisor@ircub.test` → **Dashboard**.
+
+---
+
 ## Assumptions & limitations
 
 - The take-home window is **5 working days**; modules are batched across those days.
 - Banks, mobile money, SMS, FX rates, and FMIS are simulated with mock services.
 - Mock FMIS journal state lives in Redis cache; reconciliation rebuilds the day index from IRCUB `POSTED` batches when needed.
+- Dashboard forecast uses OLS on monthly totals (transparent POC model); not a production time-series suite.
+- Dashboard “real-time” updates use short-interval polling rather than WebSockets.
 - Only sandbox / test data is used — no real personal, taxpayer, or financial data.
 - Optional 2FA is planned as a configurable stub, not a full production MFA product.
-- Frontend still contains Dompet demo pages that will be replaced or hidden as remaining IRCUB screens are finished.
-- Hosted HTTPS demo on Contabo is planned after Module 7 (dashboard) is complete.
+- Frontend still contains Dompet demo pages (e.g. `/dashboard-demo`) that can be hidden later.
+- Hosted HTTPS demo on Contabo is the remaining Day-5 polish item.
 
 ---
 

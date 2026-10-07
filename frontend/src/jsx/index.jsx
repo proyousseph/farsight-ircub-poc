@@ -13,6 +13,7 @@ import Nav from "./layouts/nav";
 import Footer from "./layouts/Footer";
 /// Dashboard
 import Home from "./components/Dashboard/Home";
+import ExecutiveDashboard from "./components/Dashboard/ExecutiveDashboard";
 import DashboardDark from "./components/Dashboard/DashboardDark";
 import MyWallet from "./components/Dashboard/MyWallet";
 import Invoices from "./components/Dashboard/Invoices";
@@ -135,8 +136,9 @@ import FmisPage from "./components/Fmis/FmisPage";
 const Markup = () => {
   const allroutes = [
     /// Dashboard
-    { url: "", component: <Home /> },
-    { url: "dashboard", component: <Home /> },
+    { url: "", component: <ExecutiveDashboard /> },
+    { url: "dashboard", component: <ExecutiveDashboard /> },
+    { url: "dashboard-demo", component: <Home /> },
     { url: "dashboard-dark", component: <DashboardDark /> },
     { url: "my-wallet", component: <MyWallet /> },
     { url: "invoices", component: <Invoices /> },
@@ -253,7 +255,7 @@ const Markup = () => {
     { url: "reconciliation", component: <ReconciliationPage /> },
     { url: "fmis", component: <FmisPage /> },
     { url: "fmis-reconciliation", component: <FmisPage /> },
-    { url: "reports", component: <ModulePlaceholder title="Reports" dayLabel="Day 7" description="Executive reports will be expanded with the analytics dashboard." /> },
+    { url: "reports", component: <ExecutiveDashboard /> },
     { url: "users", component: <ModulePlaceholder title="Users & Roles" dayLabel="Day 1 (API ready)" description="Role permissions are live in the API. A full admin UI can be added next." /> },
     { url: "audit-logs", component: <ModulePlaceholder title="Audit Logs" dayLabel="Day 3" description="Tamper-evident audit trails will be added with revenue transactions." /> },
     { url: "my-assessments", component: <ModulePlaceholder title="My Assessments" dayLabel="Day 3" description="Taxpayer self-service assessments will appear after assessment module is built." /> },

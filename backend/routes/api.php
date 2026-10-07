@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingCycleController;
 use App\Http\Controllers\Api\ChannelPaymentController;
 use App\Http\Controllers\Api\ChannelReconciliationController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FmisController;
 use App\Http\Controllers\Api\GlMappingController;
 use App\Http\Controllers\Api\MeterReadingController;
@@ -132,4 +133,12 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:fmis.post|payments.approve_reversal');
     Route::get('fmis/reconciliation', [FmisController::class, 'reconcile'])
         ->middleware('permission:fmis.reconcile|fmis.post');
+
+    // Module 7 — Executive dashboard & predictive analytics
+    Route::get('dashboard', [DashboardController::class, 'show'])
+        ->middleware('permission:dashboard.view');
+    Route::get('dashboard/alerts', [DashboardController::class, 'alerts'])
+        ->middleware('permission:dashboard.view');
+    Route::post('dashboard/refresh', [DashboardController::class, 'refresh'])
+        ->middleware('permission:dashboard.view|reports.view');
 });
