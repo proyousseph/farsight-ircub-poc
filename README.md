@@ -48,7 +48,7 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 ├── frontend/            # Dompet React + Vite admin UI
 ├── backend/             # Laravel API
 ├── docker/              # Nginx / deploy configs (to be expanded)
-├── docs/                # Notes, ERD (upcoming)
+├── docs/                # STACK.md, ERD.md
 ├── scripts/             # Helper scripts
 ├── docker-compose.yml   # Postgres + Redis (+ pgAdmin / Redis Insight)
 └── README.md
@@ -147,11 +147,23 @@ Progress below follows the **document modules**, independent of the day labels a
 - [x] Frontend **Executive Dashboard** replaces Dompet demo home (`/dashboard`)
 - [x] Verified with `backend/scripts/verify_module7.php` (12/12) + HTTP API checks
 
-### Deploy & polish — Planned
+### Deploy & polish — In progress
 
+- [x] ERD — see [`docs/ERD.md`](docs/ERD.md)
 - [ ] Dockerized / Nginx deploy to Contabo
 - [ ] HTTPS demo on `ircub.waagefaal.so`
-- [ ] ERD, OpenAPI/Postman notes, and README final pass
+- [ ] OpenAPI/Swagger + Postman (or similar)
+- [ ] Broader automated tests + run instructions in README
+- [ ] README final pass
+
+---
+
+## Documentation
+
+| Doc | Path |
+|---|---|
+| Technology stack notes | [`docs/STACK.md`](docs/STACK.md) |
+| Entity Relationship Diagram | [`docs/ERD.md`](docs/ERD.md) |
 
 ---
 
