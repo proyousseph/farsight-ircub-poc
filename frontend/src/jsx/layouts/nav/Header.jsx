@@ -1,10 +1,31 @@
 import React, { useContext, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Dropdown } from "react-bootstrap";
 import { useDispatch } from "react-redux";
 import { ThemeContext } from "../../../context/ThemeContext";
 import { Logout } from "../../../store/actions/AuthActions";
 import profile from "../../../assets/images/profile/pic1.jpg";
+
+const TITLE_MAP = {
+  "": "Dashboard",
+  dashboard: "Dashboard",
+  reports: "Dashboard",
+  payers: "Payer Registry",
+  create: "Register Payer",
+  assessments: "Assessments",
+  "my-assessments": "My Assessments",
+  payments: "Payments",
+  "meter-readings": "Meter Readings",
+  "billing-cycles": "Billing Cycles",
+  "water-bills": "Water Bills",
+  "my-bills": "My Bills",
+  "channel-payments": "Channel Payments",
+  reconciliation: "Channel Reconciliation",
+  fmis: "FMIS Journals",
+  "fmis-reconciliation": "FMIS Journals",
+  users: "Users & Roles",
+  "audit-logs": "Audit Logs",
+};
 
 function readUserSession() {
   try {
@@ -23,26 +44,18 @@ function readUserSession() {
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const [session] = useState(() => readUserSession());
-  const path = window.location.pathname.split("/");
-  const name = path[path.length - 1].split("-");
-  const filterName = name.length >= 3 ? name.filter((n, i) => i > 0) : name;
-  const finalName = filterName.includes("app")
-    ? filterName.filter((f) => f !== "app")
-    : filterName.includes("ui")
-      ? filterName.filter((f) => f !== "ui")
-      : filterName.includes("uc")
-        ? filterName.filter((f) => f !== "uc")
-        : filterName.includes("basic")
-          ? filterName.filter((f) => f !== "basic")
-          : filterName.includes("page")
-            ? filterName.filter((f) => f !== "page")
-            : filterName.includes("email")
-              ? filterName.filter((f) => f !== "email")
-              : filterName;
-
   const { background, changeBackground } = useContext(ThemeContext);
+
+  const segments = location.pathname.split("/").filter(Boolean);
+  const leaf = segments[segments.length - 1] || "";
+  const pageTitle =
+    TITLE_MAP[leaf] ||
+    (segments[0] === "payers" && segments[1] && segments[1] !== "create"
+      ? "Payer Profile"
+      : leaf.replace(/-/g, " ") || "Dashboard");
 
   function ChangeColor() {
     if (background.value === "light") {
@@ -56,29 +69,23 @@ const Header = () => {
     dispatch(Logout(navigate));
   };
 
-  const pageTitle =
-    finalName.join(" ").length === 0
-      ? "Dashboard"
-      : finalName.join(" ") === "dashboard dark"
-        ? "Dashboard"
-        : finalName.join(" ");
-
   return (
     <div className="header">
       <div className="header-content">
         <nav className="navbar navbar-expand">
           <div className="collapse navbar-collapse justify-content-between">
             <div className="header-left">
-              <div className="dashboard_bar" style={{ textTransform: "capitalize" }}>
-                {pageTitle}
-              </div>
+              <div className="dashboard_bar text-capitalize">{pageTitle}</div>
             </div>
             <ul className="navbar-nav header-right main-notification">
               <li className="nav-item dropdown notification_dropdown">
                 <Link
                   to={"#"}
                   className={`nav-link bell dz-theme-mode p-0 ${background.value === "dark" ? "active" : ""}`}
-                  onClick={ChangeColor}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    ChangeColor();
+                  }}
                 >
                   <i id="icon-light" className="fas fa-sun" />
                   <i id="icon-dark" className="fas fa-moon" />
@@ -91,10 +98,9 @@ const Header = () => {
                   as="a"
                   className="nav-link i-false c-pointer"
                   role="button"
-                  data-toggle="dropdown"
                 >
                   <img src={profile} width={20} alt="" />
-                  <div className="header-info ms-2 d-none d-sm-block">
+                  <div className="header-info ms-2 d-none d-md-block">
                     <span className="font-w600 d-block lh-1">{session.name}</span>
                     <small className="text-muted">{session.role || "IRCUB user"}</small>
                   </div>

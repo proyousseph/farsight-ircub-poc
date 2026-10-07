@@ -10,14 +10,9 @@ import { isAuthenticated } from './store/selectors/AuthSelectors';
 
 import './assets/vendor/swiper/css/swiper-bundle.min.css';
 import "./assets/css/style.css";
+import "./assets/css/ircub-overrides.css";
 
-
-const SignUp = lazy(() => import('./jsx/pages/Registration'));
-const Login = lazy(() => {
-    return new Promise(resolve => {
-        setTimeout(() => resolve(import('./jsx/pages/Login')), 500);
-    });
-});
+const Login = lazy(() => import('./jsx/pages/Login'));
 
 function withRouter(Component) {
     function ComponentWithRouterProp(props) {
@@ -45,9 +40,8 @@ function App(props) {
 
     let routeblog = (
         <Routes>
-            <Route path='/login' element={<Login />} />
-            <Route path='/page-register' element={<SignUp />} />
-
+            <Route path="/login" element={<Login />} />
+            <Route path="*" element={<Login />} />
         </Routes>
     );
     if (props.isAuthenticated) {

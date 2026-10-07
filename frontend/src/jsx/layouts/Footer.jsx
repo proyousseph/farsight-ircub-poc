@@ -1,16 +1,12 @@
- import React from "react";
+import React from "react";
 
 const Footer = () => {
-  var d = new Date();
+  const year = new Date().getFullYear();
   return (
     <div className="footer">
       <div className="copyright">
         <p>
-          Copyright © Designed &amp; Developed by{" "}
-          <a href="http://dexignlab.com/" target="_blank" rel="noreferrer">
-            DexignLab
-          </a>{" "}
-          {d.getFullYear()}
+          IRCUB © {year} — Farsight Africa Technologies POC
         </p>
       </div>
     </div>

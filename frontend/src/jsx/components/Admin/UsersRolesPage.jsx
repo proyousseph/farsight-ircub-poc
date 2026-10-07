@@ -104,37 +104,49 @@ const UsersRolesPage = () => {
       </ul>
 
       {tab === 'users' && (
-        <div className="row">
-          <div className="col-xl-4">
-            <div className="card"><div className="card-header"><h4 className="card-title">Create user</h4></div>
+        <div className="row ircub-admin-grid">
+          <div className="col-12 col-lg-4">
+            <div className="card"><div className="card-header"><h4 className="card-title mb-0">Create user</h4></div>
               <div className="card-body">
-                <form onSubmit={onCreateUser} className="d-grid gap-2">
-                  <input className="form-control" placeholder="Name" value={userForm.name} onChange={(e) => setUserForm({ ...userForm, name: e.target.value })} required />
-                  <input className="form-control" type="email" placeholder="Email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} required />
-                  <input className="form-control" type="password" placeholder="Password" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} required />
-                  <small className="text-muted">Password policy: min 10, upper/lower/number/symbol.</small>
-                  <select multiple className="form-control" value={userForm.role_ids} onChange={(e) => setUserForm({ ...userForm, role_ids: Array.from(e.target.selectedOptions).map((o) => o.value) })}>
-                    {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                  </select>
+                <form onSubmit={onCreateUser} className="d-grid gap-2 ircub-admin-form">
+                  <div>
+                    <label className="form-label mb-1">Full name</label>
+                    <input className="form-control" placeholder="Full name" value={userForm.name} onChange={(e) => setUserForm({ ...userForm, name: e.target.value })} required />
+                  </div>
+                  <div>
+                    <label className="form-label mb-1">Email</label>
+                    <input className="form-control" type="email" placeholder="Email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} required />
+                  </div>
+                  <div>
+                    <label className="form-label mb-1">Password</label>
+                    <input className="form-control" type="password" placeholder="Password" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} required />
+                    <small className="text-muted">Password policy: min 10, upper/lower/number/symbol.</small>
+                  </div>
+                  <div>
+                    <label className="form-label mb-1">Roles (Ctrl/Cmd multi-select)</label>
+                    <select multiple className="form-control" size={Math.min(6, Math.max(3, roles.length))} value={userForm.role_ids} onChange={(e) => setUserForm({ ...userForm, role_ids: Array.from(e.target.selectedOptions).map((o) => o.value) })}>
+                      {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    </select>
+                  </div>
                   <label className="form-check"><input type="checkbox" className="form-check-input" checked={userForm.two_factor_enabled} onChange={(e) => setUserForm({ ...userForm, two_factor_enabled: e.target.checked })} /> Enable 2FA stub</label>
                   <button className="btn btn-primary" type="submit">Create</button>
                 </form>
               </div>
             </div>
           </div>
-          <div className="col-xl-8">
+          <div className="col-12 col-lg-8">
             <div className="card"><div className="card-body table-responsive">
-              <table className="table table-sm">
-                <thead><tr><th>Name</th><th>Email</th><th>Roles</th><th>2FA</th><th>Active</th><th /></tr></thead>
+              <table className="table table-sm align-middle">
+                <thead><tr><th>Name</th><th>Email</th><th className="d-none d-md-table-cell">Roles</th><th>2FA</th><th>Active</th><th /></tr></thead>
                 <tbody>
                   {users.map((u) => (
                     <tr key={u.id}>
                       <td>{u.name}</td>
-                      <td>{u.email}</td>
-                      <td>{(u.roles || []).map((r) => r.name).join(', ')}</td>
+                      <td className="text-break">{u.email}</td>
+                      <td className="d-none d-md-table-cell">{(u.roles || []).map((r) => r.name).join(', ')}</td>
                       <td>{u.two_factor_enabled ? 'Yes' : 'No'}</td>
                       <td>{u.is_active ? 'Yes' : 'No'}</td>
-                      <td><button type="button" className="btn btn-xs btn-outline-secondary" onClick={() => toggleActive(u)}>{u.is_active ? 'Deactivate' : 'Activate'}</button></td>
+                      <td className="text-nowrap"><button type="button" className="btn btn-sm btn-outline-secondary text-nowrap px-2" onClick={() => toggleActive(u)}>{u.is_active ? 'Disable' : 'Enable'}</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -145,8 +157,8 @@ const UsersRolesPage = () => {
       )}
 
       {tab === 'roles' && (
-        <div className="row">
-          <div className="col-xl-5">
+        <div className="row ircub-admin-grid">
+          <div className="col-12 col-lg-5">
             <div className="card"><div className="card-header"><h4 className="card-title">Create custom role</h4></div>
               <div className="card-body">
                 <form onSubmit={onCreateRole}>
@@ -165,7 +177,7 @@ const UsersRolesPage = () => {
               </div>
             </div>
           </div>
-          <div className="col-xl-7">
+          <div className="col-12 col-lg-7">
             <div className="card"><div className="card-body">
               {roles.map((r) => (
                 <div key={r.id} className="mb-3 border-bottom pb-2">

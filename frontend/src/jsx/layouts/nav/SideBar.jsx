@@ -1,4 +1,4 @@
-import React, { useReducer, useContext, useEffect, useState } from "react";
+import React, { useReducer, useContext, useState } from "react";
 /// Scroll
 import PerfectScrollbar from "react-perfect-scrollbar";
 /// Link
@@ -56,20 +56,6 @@ const SideBar = () => {
     dispatch(Logout(navigate));
   };
 
-  useEffect(() => {
-    const btn = document.querySelector(".nav-control");
-    const wrapper = document.querySelector("#main-wrapper");
-    if (!btn || !wrapper) {
-      return undefined;
-    }
-    const toggleFunc = () => wrapper.classList.toggle("menu-toggle");
-    btn.addEventListener("click", toggleFunc);
-    return () => btn.removeEventListener("click", toggleFunc);
-  }, []);
-
-  function heartBlast() {
-    document.querySelector('.heart')?.classList.toggle("heart-blast");
-  }
   const [hideOnScroll, setHideOnScroll] = useState(true)
   useScrollPosition(
     ({ prevPos, currPos }) => {
@@ -114,15 +100,15 @@ const SideBar = () => {
     >
       <PerfectScrollbar className="dlabnav-scroll">
         <ul className="metismenu" id="menu">
-          <li className="nav-item header-profile">
-            <div className="nav-link" style={{ display: 'block', paddingTop: '1rem', paddingBottom: '0.75rem' }}>
+          <li className="nav-item header-profile ircub-side-profile">
+            <a href="#ircub-profile" className="nav-link" onClick={(e) => e.preventDefault()} style={{ display: 'block', paddingTop: '1rem', paddingBottom: '0.75rem' }}>
               <div className="header-info ms-0">
-                <span className="font-w600 d-block">{session.name}</span>
+                <span className="font-w600 d-block text-truncate">{session.name}</span>
                 {session.role && (
-                  <small className="d-block text-primary font-w500 mt-1">{session.role}</small>
+                  <small className="d-block text-primary font-w500 mt-1 text-truncate">{session.role}</small>
                 )}
               </div>
-            </div>
+            </a>
           </li>
           {MenuList.map((data, index) => {
             let menuClass = data.classsChange;
@@ -205,8 +191,8 @@ const SideBar = () => {
           </li>
         </ul>
         <div className="copyright">
-          <p><strong>IRCUB</strong> © {year} Farsight Africa POC</p>
-          <p className="fs-12">Demo UI based on Dompet <span className="heart" onClick={heartBlast}></span></p>
+          <p><strong>IRCUB</strong> © {year}</p>
+          <p className="fs-12">Farsight Africa POC</p>
         </div>
       </PerfectScrollbar>
     </div>

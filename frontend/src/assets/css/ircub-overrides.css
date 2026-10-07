@@ -1,0 +1,102 @@
+/* IRCUB overrides — collapsed sidebar + responsive polish */
+
+/* Dompet never hides .menu-title on collapse — that caused the overlapping labels. */
+#main-wrapper.menu-toggle .dlabnav .metismenu > li.menu-title,
+#main-wrapper.menu-toggle .dlabnav .copyright,
+#main-wrapper.menu-toggle .dlabnav .metismenu > li.header-profile,
+#main-wrapper.menu-toggle .dlabnav .metismenu > li.ircub-side-profile,
+[data-sidebar-style="mini"] .dlabnav .metismenu > li.menu-title,
+[data-sidebar-style="mini"] .dlabnav .copyright,
+[data-sidebar-style="mini"] .dlabnav .metismenu > li.header-profile,
+[data-sidebar-style="mini"] .dlabnav .metismenu > li.ircub-side-profile {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+#main-wrapper.menu-toggle .dlabnav .nav-text,
+#main-wrapper.menu-toggle .dlabnav .badge,
+[data-sidebar-style="mini"] .dlabnav .nav-text {
+  display: none !important;
+}
+
+#main-wrapper.menu-toggle .dlabnav .metismenu > li > a,
+[data-sidebar-style="mini"] .dlabnav .metismenu > li > a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+#main-wrapper.menu-toggle .dlabnav .metismenu > li > a i,
+#main-wrapper.menu-toggle .dlabnav .metismenu > li > a [class^="flaticon-"],
+[data-sidebar-style="mini"] .dlabnav .metismenu > li > a i {
+  margin: 0 !important;
+  font-size: 1.25rem;
+}
+
+/* Hide has-arrow chevron when collapsed */
+#main-wrapper.menu-toggle .dlabnav .metismenu > li > a.has-arrow::after,
+[data-sidebar-style="mini"] .dlabnav .metismenu > li > a.has-arrow::after {
+  display: none !important;
+}
+
+/* Keep content readable on tablets / phones */
+@media (max-width: 991.98px) {
+  .content-body .container-fluid {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .ircub-page-toolbar {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .table-responsive {
+    margin-bottom: 1rem;
+  }
+
+  .page-titles {
+    margin-bottom: 0.75rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .dashboard_bar {
+    font-size: 1rem !important;
+  }
+
+  .card .card-body .row.g-2 > [class*="col-"] {
+    margin-bottom: 0.25rem;
+  }
+
+  .ircub-admin-grid > [class*="col-"] {
+    margin-bottom: 1rem;
+  }
+
+  /* Compact header profile on phones — avatar + dropdown only */
+  .header .header-content .navbar .navbar-nav .header-profile .header-info {
+    display: none !important;
+  }
+
+  .header .header-content {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+/* Users & Roles form: full-width controls on small screens */
+.ircub-admin-form .form-control,
+.ircub-admin-form select.form-control {
+  width: 100%;
+}
+
+.ircub-admin-grid .table td.text-break,
+.ircub-admin-grid .table td {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}

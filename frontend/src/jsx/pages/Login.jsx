@@ -55,15 +55,8 @@ function Login(props) {
           <div className="login-description">
             <h2 className="main-title mb-2">Welcome To IRCUB</h2>
             <p className="">Integrated Revenue Collection & Utility Billing Platform — Farsight Africa POC. Sign in with your assigned role account.</p>
-            <ul className="social-icons mt-4">
-              <li><Link to={"https://www.facebook.com/dexignzone"} target='_blank'><i className="fab fa-facebook-f"></i></Link></li>
-              <li><Link to={"https://twitter.com/dexignzones"} target='_blank'><i className="fab fa-twitter"></i></Link></li>
-              <li><Link to={"https://www.linkedin.com/in/dexignzone"} target='_blank'><i className="fab fa-linkedin-in"></i></Link></li>
-            </ul>
             <div className="mt-5 bottom-privacy">
-              <Link to={"#"} className="mr-4">Privacy Policy</Link>
-              <Link to={"#"} className="mr-4">Contact</Link>
-              <Link to={"#"} className="">© {year} DexignZone</Link>
+              <span className="text-white-50">© {year} IRCUB · Farsight Africa</span>
             </div>
           </div>
         </div>
@@ -128,24 +121,7 @@ function Login(props) {
                             <small className="text-muted">Optional 2FA stub — auditor account uses OTP 123456.</small>
                           </div>
                         )}
-                        <div className="form-row d-flex justify-content-between mt-4 mb-2">
-                          <div className="form-group">
-                            <div className="form-check custom-checkbox ml-1 ">
-                              <input
-                                type="checkbox"
-                                className="form-check-input"
-                                id="basic_checkbox_1"
-                              />
-                              <label
-                                className="form-check-label"
-                                htmlFor="basic_checkbox_1"
-                              >
-                                Remember my preference
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-center">
+                        <div className="text-center mt-4">
                           <button
                             type="submit"
                             className="btn btn-primary btn-block"
@@ -155,11 +131,8 @@ function Login(props) {
                         </div>
                       </form>
                       <div className="new-account mt-2">
-                        <p className="">
-                          Don't have an account?{" "}
-                          <Link className="text-primary" to="/page-register">
-                            Sign up
-                          </Link>
+                        <p className="mb-0 text-muted fs-12">
+                          Self-registration is disabled. Use a seeded demo account.
                         </p>
                       </div>
                     </div>
