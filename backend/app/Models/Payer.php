@@ -46,6 +46,17 @@ class Payer extends Model
         return $this->hasMany(PayerObligation::class);
     }
 
+    public function assessments(): HasMany
+    {
+        return $this->hasMany(Assessment::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+
     public function scopeSearch(Builder $query, ?string $term): Builder
     {
         if (! $term) {
