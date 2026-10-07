@@ -24,7 +24,30 @@ Project/
 └── docker-compose.yml
 ```
 
-## Local quick start (frontend only)
+## Local quick start
+
+### 1. Infrastructure
+
+```bash
+docker compose up -d
+```
+
+Starts PostgreSQL on host port **5433** and Redis on **6379**.
+
+### 2. Backend API
+
+```bash
+cd backend
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate:fresh --seed
+php artisan serve --host=127.0.0.1 --port=8001
+```
+
+API: `http://127.0.0.1:8001/api`
+
+### 3. Frontend
 
 ```bash
 cd frontend
@@ -34,17 +57,16 @@ npm run dev
 
 Open the URL Vite prints (usually `http://localhost:5173`).
 
-## Local quick start (backend API)
+### Demo users (password for all: `Password@123`)
 
-```bash
-cd backend
-composer install
-cp .env.example .env   # if needed
-php artisan key:generate
-php artisan serve
-```
-
-API will be at `http://127.0.0.1:8000`.
+| Role | Email |
+|---|---|
+| System Administrator | admin@ircub.test |
+| Revenue Supervisor | supervisor@ircub.test |
+| Revenue Officer | officer@ircub.test |
+| Water Billing Officer | water@ircub.test |
+| Auditor | auditor@ircub.test |
+| Taxpayer / Customer | taxpayer@ircub.test |
 
 ## Docker (Postgres + Redis + app)
 
