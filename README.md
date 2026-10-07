@@ -2,14 +2,15 @@
 
 **Farsight Africa Technologies — Software Developer POC (take-home)**
 
-Candidate: **Yusuf Mohamed Ahmed**
+Candidate: **Yusuf Mohamed Ahmed**  
+Timeline: **5 working days** (not one module per day)
 
 | Item | Link |
 |---|---|
 | Repository | https://github.com/proyousseph/farsight-ircub-poc |
 | Demo (planned) | https://ircub.waagefaal.so |
 
-> Demo subdomain DNS already points to the Contabo VPS (`161.97.90.92`). App deploy + Nginx mapping will follow once core modules are ready.
+> Demo subdomain DNS already points to the Contabo VPS (`161.97.90.92`). App deploy + Nginx mapping will follow once remaining modules are ready.
 
 ---
 
@@ -49,27 +50,42 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 ├── docker/              # Nginx / deploy configs (to be expanded)
 ├── docs/                # Notes, ERD (upcoming)
 ├── scripts/             # Helper scripts
-├── docker-compose.yml   # Postgres + Redis
+├── docker-compose.yml   # Postgres + Redis (+ pgAdmin / Redis Insight)
 └── README.md
 ```
 
 ---
 
-## Current progress
+## 5-day take-home plan
 
-### Done (Day 1 — User & Role Management)
+The POC brief allows **5 working days**. Work is grouped by delivery days, not by “one document module = one day”.
 
-- [x] Docker Compose: PostgreSQL + Redis
+| Day | Focus | Status |
+|---|---|---|
+| **1** | Project scaffold, Docker (Postgres/Redis), auth, roles & permissions, Dompet login + menus | Done |
+| **2** | Taxpayer/customer registry + tax assessment & collection (control numbers, payments, CSV, audit, filters) | Done |
+| **3** | Water utility billing (tariffs, readings, billing cycle, PDF/SMS mock, statements, abnormal holds) | Done |
+| **4** | Payment channel integration (FX rates, bank/MM mocks, callbacks, retries, channel reconciliation UI) | Done |
+| **5** | FMIS posting & reconciliation, executive dashboard + forecast, Contabo deploy to `ircub.waagefaal.so`, docs polish | Next |
+
+---
+
+## Module progress (POC checklist)
+
+Progress below follows the **document modules**, independent of the day labels above.
+
+### Module 1 — User & Role Management — Done
+
+- [x] Docker Compose: PostgreSQL + Redis (+ pgAdmin / Redis Insight)
 - [x] Laravel configured for Postgres / Redis
-- [x] Roles & permissions schema (DB-driven)
+- [x] DB-driven roles & permissions
 - [x] Six system roles seeded with permissions
 - [x] Sanctum auth API: login / logout / me
 - [x] Permission middleware
 - [x] Dompet login wired to Laravel API
 - [x] Role-based sidebar menus
-- [x] pgAdmin + Redis Insight for local inspection
 
-### Done (Day 2 — Taxpayer & Customer Registry)
+### Module 2 — Taxpayer & Customer Registry — Done
 
 - [x] Payers, water accounts, and revenue obligations schema
 - [x] Duplicate detection (phone / email / national ID) with force-create flag
@@ -77,45 +93,57 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 - [x] Demo seed data (including intentional duplicate phone)
 - [x] Frontend: payer list, register form, profile page
 
-### Done (Day 3 — Tax Revenue Assessment & Collection)
+### Module 3 — Tax Revenue Assessment & Collection — Done
 
-- [x] Revenue types with GL codes
+- [x] Revenue types with rates and GL codes
 - [x] Assessments with unique control numbers
 - [x] Payment capture linked to assessments
-- [x] CSV bulk payment upload with accept/reject summary
-- [x] Downloadable sample CSV for bulk payment upload
-- [x] Audit logs for create/update/upload actions (before/after values)
-- [x] Advanced filters (payer/search, revenue type, amount range, channel, status, date range)
+- [x] CSV bulk payment upload with accept/reject summary + sample CSV download
+- [x] Audit logs (who / when / before / after)
+- [x] Advanced filters (search, revenue type, amount range, channel, status, date range)
 - [x] Frontend Assessments + Payments pages
-- [x] Payer 360° profile shows assessments/payments/balance
+- [x] Payer 360° shows assessments, payments, and balance
 
-### Done (Day 4 — Water Utility Billing)
+### Module 4 — Water Utility Billing — Done
 
-- [x] Tiered water tariffs by class (DOMESTIC / COMMERCIAL / INSTITUTIONAL)
-- [x] Meter readings (individual + CSV), reject lower readings unless rollover/replacement
-- [x] Monthly billing cycle with arrears carry-forward and WATER payment netting
-- [x] Abnormal consumption hold (&gt;200% of 3-month average) + exception report
-- [x] Bill PDF generation + mock SMS/email on release
+- [x] Tiered water tariffs (DOMESTIC / COMMERCIAL / INSTITUTIONAL)
+- [x] Meter readings (individual + CSV); reject lower readings unless rollover/replacement
+- [x] Monthly billing cycle (tariff + arrears + WATER payment netting)
+- [x] Abnormal consumption hold (>200% of 3-month average) + exception report
+- [x] Bill PDF + mock SMS/email on release
 - [x] Customer statement (bills, payments, running balance)
 - [x] Frontend: Meter Readings, Billing Cycles, Water Bills
-- [x] Payer 360° includes water bills and combined balance
-- [x] Verified against POC Module 4 checklist (readings, cycle, PDF/notify, abnormal hold, statement)
 
-### Done (Day 5 — Payment Channel Integration)
+### Module 5 — Payment Channel Integration — Done
 
-- [x] Mock FX rates API (`/mock-api/rates`) with dynamic USD↔SOS rates
+- [x] Mock FX rates API (`/mock-api/rates`) — dynamic USD ↔ SOS
 - [x] Mock bank / mobile money initiate + status endpoints
-- [x] Channel payment flow: fetch FX → initiate → callback/status → update assessment/bill
-- [x] Multi-currency (USD + local SOS) with stored FX snapshot
+- [x] Flow: fetch FX → initiate → callback/status → update assessment/bill
+- [x] Multi-currency with stored FX snapshot
 - [x] Retry status checks up to 3 times; permanent failure + supervisor notification
 - [x] Daily channel reconciliation vs mock statement file
 - [x] Frontend: Channel Payments + Reconciliation pages
 
-### Next
+### Module 6 — FMIS Posting & Reconciliation — Planned (Day 5)
 
-- [ ] FMIS posting & reconciliation
-- [ ] Executive dashboard + forecast
-- [ ] Dockerized app deploy to `ircub.waagefaal.so`
+- [ ] Revenue type → GL mapping (extend existing)
+- [ ] Daily journal batches (Pending / Posted / Failed / Reversed)
+- [ ] Mock FMIS post + FMIS reference; prevent double-posting
+- [ ] IRCUB vs FMIS reconciliation screen with drill-down
+
+### Module 7 — Dashboard with Predictive Analytics — Planned (Day 5)
+
+- [ ] Revenue trends by type and channel
+- [ ] Collections vs targets; water billed vs collected
+- [ ] Next-quarter revenue forecast (linear regression or better)
+- [ ] Alerts for unusual activity
+- [ ] Performance-minded aggregation / async updates where practical
+
+### Deploy & polish — Planned (Day 5)
+
+- [ ] Dockerized / Nginx deploy to Contabo
+- [ ] HTTPS demo on `ircub.waagefaal.so`
+- [ ] ERD, OpenAPI/Postman notes, and README final pass
 
 ---
 
@@ -138,12 +166,12 @@ docker compose up -d
 |---|---|---|
 | PostgreSQL | **5433** | Mapped away from local Postgres on 5432 |
 | Redis | **6379** | Cache, queues, sessions |
-| pgAdmin | **5050** | Browse Postgres — http://localhost:5050 |
-| Redis Insight | **5540** | Browse Redis — http://localhost:5540 |
+| pgAdmin | **5050** | http://localhost:5050 |
+| Redis Insight | **5540** | http://localhost:5540 |
 
-**pgAdmin login:** `admin@example.com` / `admin123`  
+**pgAdmin login:** `admin@example.com` / `admin123`
 
-When adding a Postgres server in pgAdmin use:
+When adding a Postgres server in pgAdmin:
 
 | Field | Value |
 |---|---|
@@ -196,7 +224,7 @@ Password for all accounts: **`Password@123`**
 
 ---
 
-## Auth API (available now)
+## Auth API
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
@@ -217,11 +245,12 @@ curl -X POST http://127.0.0.1:8001/api/auth/login \
 
 ## Assumptions & limitations
 
+- The take-home window is **5 working days**; modules are batched across those days.
 - Banks, mobile money, SMS, FX rates, and FMIS are simulated with mock services.
 - Only sandbox / test data is used — no real personal, taxpayer, or financial data.
 - Optional 2FA is planned as a configurable stub, not a full production MFA product.
-- Frontend still contains Dompet demo pages that will be replaced or hidden as IRCUB modules are built.
-- Hosted HTTPS demo on Contabo will be enabled after core modules are deployable.
+- Frontend still contains Dompet demo pages that will be replaced or hidden as remaining IRCUB screens are finished.
+- Hosted HTTPS demo on Contabo is planned for the final day once FMIS/dashboard are in place.
 
 ---
 
