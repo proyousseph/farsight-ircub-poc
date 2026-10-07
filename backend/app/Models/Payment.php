@@ -19,6 +19,9 @@ class Payment extends Model
         'paid_at',
         'status',
         'fmis_status',
+        'fmis_reference',
+        'fmis_posted_at',
+        'fmis_journal_line_id',
         'notes',
         'created_by',
     ];
@@ -28,7 +31,13 @@ class Payment extends Model
         return [
             'amount' => 'decimal:2',
             'paid_at' => 'datetime',
+            'fmis_posted_at' => 'datetime',
         ];
+    }
+
+    public function fmisJournalLine(): BelongsTo
+    {
+        return $this->belongsTo(FmisJournalLine::class, 'fmis_journal_line_id');
     }
 
     public function payer(): BelongsTo
