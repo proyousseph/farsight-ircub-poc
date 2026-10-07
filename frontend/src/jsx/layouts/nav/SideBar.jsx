@@ -2,23 +2,30 @@ import React, { useReducer, useContext, useEffect, useState } from "react";
 /// Scroll
 import PerfectScrollbar from "react-perfect-scrollbar";
 /// Link
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Collapse, Dropdown } from "react-bootstrap";
+import { useDispatch } from "react-redux";
 import { useScrollPosition } from "@n8tb1t/use-scroll-position";
 import { getVisibleMenu } from './Menu';
 import { ThemeContext } from "../../../context/ThemeContext";
 import LogoutPage from './Logout';
+import { Logout } from "../../../store/actions/AuthActions";
 /// Image
 import profile from "../../../assets/images/profile/pic1.jpg";
 
-function readPermissions() {
+function readUserSession() {
   try {
     const raw = localStorage.getItem('userDetails');
-    if (!raw) return [];
+    if (!raw) return { permissions: [], name: 'Guest', email: '', role: '' };
     const stored = JSON.parse(raw);
-    return Array.isArray(stored.permissions) ? stored.permissions : [];
+    return {
+      permissions: Array.isArray(stored.permissions) ? stored.permissions : [],
+      name: stored.displayName || stored.user?.name || stored.email || 'User',
+      email: stored.email || stored.user?.email || '',
+      role: stored.roles?.[0]?.name || stored.user?.roles?.[0]?.name || '',
+    };
   } catch {
-    return [];
+    return { permissions: [], name: 'Guest', email: '', role: '' };
   }
 }
 
@@ -34,8 +41,10 @@ const initialState = {
 
 const SideBar = () => {
   let year = new Date().getFullYear();
-  const [permissions] = useState(() => readPermissions());
-  const MenuList = getVisibleMenu(permissions);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [session] = useState(() => readUserSession());
+  const MenuList = getVisibleMenu(session.permissions);
   const {
     iconHover,
     sidebarposition,
@@ -45,6 +54,10 @@ const SideBar = () => {
   } = useContext(ThemeContext);
 
   const [state, setState] = useReducer(reducer, initialState);
+
+  const onLogout = () => {
+    dispatch(Logout(navigate));
+  };
 
   useEffect(() => {
     var btn = document.querySelector(".nav-control");
@@ -114,8 +127,11 @@ const SideBar = () => {
             >
               <img src={profile} width={20} alt="" />
               <div className="header-info ms-3">
-                <span className="font-w600 ">Hi,<b>William</b></span>
-                <small className="text-end font-w400">william@gmail.com</small>
+                <span className="font-w600 ">Hi, <b>{session.name}</b></span>
+                <small className="text-end font-w400">{session.email || 'IRCUB user'}</small>
+                {session.role && (
+                  <small className="d-block text-primary font-w500">{session.role}</small>
+                )}
               </div>
             </Dropdown.Toggle>
 
@@ -233,10 +249,18 @@ const SideBar = () => {
               )
             }
           })}
+
+          <li className="menu-title">Account</li>
+          <li>
+            <Link to="#" onClick={(e) => { e.preventDefault(); onLogout(); }}>
+              <i className="fa fa-sign-out"></i>
+              <span className="nav-text">Logout</span>
+            </Link>
+          </li>
         </ul>
         <div className="copyright">
-          <p><strong>Dompet Payment Admin Template</strong> © {year} All Rights Reserved</p>
-          <p className="fs-12">Made with <span className="heart" onClick={heartBlast}></span> by DexignLab</p>
+          <p><strong>IRCUB</strong> © {year} Farsight Africa POC</p>
+          <p className="fs-12">Demo UI based on Dompet <span className="heart" onClick={heartBlast}></span></p>
         </div>
       </PerfectScrollbar>
     </div>
