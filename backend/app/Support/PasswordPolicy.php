@@ -2,24 +2,21 @@
 
 namespace App\Support;
 
+use App\Services\SystemConfigService;
 use Illuminate\Validation\Rules\Password;
 
 class PasswordPolicy
 {
     public static function rule(): Password
     {
-        $cfg = config('ircub.password_policy');
+        $svc = app(SystemConfigService::class);
+        $min = (int) $svc->get('password_min_length', config('ircub.password_policy.min_length', 10));
+        $complex = (bool) $svc->get('password_require_complexity', true);
 
-        $rule = Password::min((int) ($cfg['min_length'] ?? 10));
+        $rule = Password::min(max(8, $min));
 
-        if ($cfg['require_uppercase'] ?? true) {
-            $rule = $rule->mixedCase();
-        }
-        if ($cfg['require_number'] ?? true) {
-            $rule = $rule->numbers();
-        }
-        if ($cfg['require_symbol'] ?? true) {
-            $rule = $rule->symbols();
+        if ($complex) {
+            $rule = $rule->mixedCase()->numbers()->symbols();
         }
 
         return $rule;
@@ -27,7 +24,15 @@ class PasswordPolicy
 
     public static function description(): string
     {
-        return (string) config('ircub.password_policy.description');
+        $svc = app(SystemConfigService::class);
+        $min = (int) $svc->get('password_min_length', 10);
+        $complex = (bool) $svc->get('password_require_complexity', true);
+
+        if ($complex) {
+            return "Min {$min} chars with upper, lower, number, and symbol (e.g. Password@123).";
+        }
+
+        return "Min {$min} characters.";
     }
 
     /**
@@ -35,12 +40,16 @@ class PasswordPolicy
      */
     public static function meta(): array
     {
+        $svc = app(SystemConfigService::class);
+        $min = (int) $svc->get('password_min_length', 10);
+        $complex = (bool) $svc->get('password_require_complexity', true);
+
         return [
-            'min_length' => (int) config('ircub.password_policy.min_length', 10),
-            'require_uppercase' => (bool) config('ircub.password_policy.require_uppercase', true),
-            'require_lowercase' => (bool) config('ircub.password_policy.require_lowercase', true),
-            'require_number' => (bool) config('ircub.password_policy.require_number', true),
-            'require_symbol' => (bool) config('ircub.password_policy.require_symbol', true),
+            'min_length' => $min,
+            'require_uppercase' => $complex,
+            'require_lowercase' => $complex,
+            'require_number' => $complex,
+            'require_symbol' => $complex,
             'description' => self::description(),
         ];
     }

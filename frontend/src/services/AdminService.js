@@ -31,3 +31,11 @@ export function listPermissions() {
 export function listAuditLogs(params = {}) {
   return api.get('/audit-logs', { params });
 }
+
+export function getSystemConfig() {
+  return api.get('/system-config');
+}
+
+export function updateSystemConfig(settings) {
+  return api.put('/system-config', { settings });
+}

@@ -66,16 +66,21 @@ class RolePermissionSeeder extends Seeder
             ],
             'revenue-supervisor' => [
                 'name' => 'Revenue Supervisor',
-                'description' => 'View, approve and reverse revenue transactions.',
+                'description' => 'View, approve and reverse revenue transactions (includes officer capabilities).',
                 'permissions' => [
+                    // Officer capabilities (child role is a subset)
+                    'payers.create',
                     'payers.view',
+                    'assessments.create',
                     'assessments.view',
+                    'payments.capture',
                     'payments.view',
-                    'payments.approve_reversal',
                     'payments.request_reversal',
+                    'dashboard.view',
+                    // Supervisor-only
+                    'payments.approve_reversal',
                     'revenue_types.manage',
                     'reports.view',
-                    'dashboard.view',
                     'channels.reconcile',
                     'fmis.post',
                     'fmis.reconcile',
@@ -136,6 +141,7 @@ class RolePermissionSeeder extends Seeder
             ],
         ];
 
+        // Create/update roles first (no parents), then wire hierarchy.
         foreach ($roleMap as $slug => $data) {
             /** @var Role $role */
             $role = Role::query()->updateOrCreate(
@@ -154,6 +160,34 @@ class RolePermissionSeeder extends Seeder
 
             $role->permissions()->sync($permissionIds);
         }
+
+        // Hierarchical tree (brief: hierarchical role system):
+        // System Administrator
+        //   ├─ Revenue Supervisor
+        //   │    └─ Revenue Officer
+        //   ├─ Water Billing Officer
+        //   ├─ Auditor
+        //   └─ Taxpayer / Customer
+        $adminId = Role::query()->where('slug', 'system-administrator')->value('id');
+        $supervisorId = Role::query()->where('slug', 'revenue-supervisor')->value('id');
+
+        $hierarchy = [
+            'system-administrator' => ['parent' => null, 'level' => 0],
+            'revenue-supervisor' => ['parent' => $adminId, 'level' => 1],
+            'revenue-officer' => ['parent' => $supervisorId, 'level' => 2],
+            'water-billing-officer' => ['parent' => $adminId, 'level' => 1],
+            'auditor' => ['parent' => $adminId, 'level' => 1],
+            'taxpayer-customer' => ['parent' => $adminId, 'level' => 1],
+        ];
+
+        foreach ($hierarchy as $slug => $meta) {
+            Role::query()->where('slug', $slug)->update([
+                'parent_id' => $meta['parent'],
+                'level' => $meta['level'],
+            ]);
+        }
+
+        app(\App\Services\SystemConfigService::class)->ensureSeeded();
 
         $demoUsers = [
             [

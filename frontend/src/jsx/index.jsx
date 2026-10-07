@@ -25,6 +25,7 @@ import ReconciliationPage from "./components/Channels/ReconciliationPage";
 import FmisPage from "./components/Fmis/FmisPage";
 import UsersRolesPage from "./components/Admin/UsersRolesPage";
 import AuditLogsPage from "./components/Admin/AuditLogsPage";
+import SystemConfigPage from "./components/Admin/SystemConfigPage";
 
 const Markup = () => {
   const routes = [
@@ -53,6 +54,7 @@ const Markup = () => {
 
     { url: "users", component: <UsersRolesPage /> },
     { url: "audit-logs", component: <AuditLogsPage /> },
+    { url: "system-config", component: <SystemConfigPage /> },
   ];
 
   return (

@@ -10,7 +10,7 @@ Scope: **Modules 1–7** (POC brief calendar window: 5 working days)
 | Repository | https://github.com/proyousseph/farsight-ircub-poc |
 | Demo (planned) | https://ircub.waagefaal.so |
 
-> Demo subdomain DNS already points to the Contabo VPS (`161.97.90.92`). App deploy + Nginx mapping will follow once remaining modules are ready.
+> Demo subdomain DNS already points to the Contabo VPS (`161.97.90.92`). **Next:** Dockerized app + Nginx HTTPS deploy to Contabo.
 
 ---
 
@@ -66,8 +66,10 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 - [x] Laravel configured for Postgres / Redis
 - [x] DB-driven roles & permissions
 - [x] Six system roles seeded with permissions
+- [x] Hierarchical roles (`parent_id` / `level`; child permissions ⊆ parent)
+- [x] System configuration API + UI (`config.manage` — password, 2FA, water threshold, channel retries)
 - [x] Sanctum auth API: login / logout / me
-- [x] Password policy (min 10 + upper/lower/number/symbol) on user create/update
+- [x] Password policy (min 10 + upper/lower/number/symbol) on user create/update (admin-tunable)
 - [x] Optional 2FA stub (demo OTP `123456`; enabled on `auditor@ircub.test`)
 - [x] Users & Roles admin API + UI (custom roles, activate/deactivate users)
 - [x] Payment reversal segregation of duties (request ≠ approve)
@@ -75,7 +77,7 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 - [x] Taxpayer self-service scoped to linked `payer_id`
 - [x] Permission middleware
 - [x] Dompet login wired to Laravel API
-- [x] Role-based sidebar menus
+- [x] Role-based sidebar menus (IRCUB routes only — unused Dompet demo pages removed from the live app)
 
 ### Module 2 — Taxpayer & Customer Registry — Done
 
@@ -365,8 +367,8 @@ UI: login as `admin@ircub.test` or `supervisor@ircub.test` → **Dashboard**.
 - Dashboard “real-time” updates use short-interval polling rather than WebSockets.
 - Only sandbox / test data is used — no real personal, taxpayer, or financial data.
 - Optional 2FA is a **stub** (shared demo OTP), not a production TOTP/SMS product.
-- Frontend still contains Dompet demo pages (e.g. `/dashboard-demo`) that can be hidden later.
-- Hosted HTTPS demo on Contabo is the remaining deploy item (do last).
+- Live frontend routes are IRCUB-only; unused Dompet template page sources were removed from the tree.
+- Local `docker-compose.yml` currently runs Postgres + Redis. Full app containers + HTTPS on Contabo remain the last deploy item.
 
 ---
 

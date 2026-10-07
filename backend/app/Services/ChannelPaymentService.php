@@ -61,7 +61,7 @@ class ChannelPaymentService
                 'external_ref' => $externalRef,
                 'status' => 'INITIATED',
                 'retry_count' => 0,
-                'max_retries' => config('channels.max_retries', 3),
+                'max_retries' => $this->maxRetries(),
                 'created_by' => $userId,
             ]);
 
@@ -81,7 +81,7 @@ class ChannelPaymentService
             $channelPayment->status = $initiate['status'] ?? 'PENDING';
             $channelPayment->initiate_payload = $initiate;
             $channelPayment->next_retry_at = $channelPayment->status === 'PENDING'
-                ? now()->addSeconds((int) config('channels.retry_delay_seconds', 30))
+                ? now()->addSeconds($this->retryDelaySeconds())
                 : null;
             $channelPayment->pushHistory('INITIATED', ['provider' => $initiate]);
             $channelPayment->save();
@@ -181,7 +181,7 @@ class ChannelPaymentService
             } else {
                 $channelPayment->status = 'PENDING';
                 $channelPayment->retry_count = (int) $channelPayment->retry_count + 1;
-                $channelPayment->next_retry_at = now()->addSeconds((int) config('channels.retry_delay_seconds', 30));
+                $channelPayment->next_retry_at = now()->addSeconds($this->retryDelaySeconds());
                 $channelPayment->save();
                 $this->maybeMarkPermanent($channelPayment, $userId);
             }
@@ -222,13 +222,25 @@ class ChannelPaymentService
         $channelPayment->last_status_check_at = now();
         $channelPayment->failure_reason = $reason;
         $channelPayment->status = 'FAILED';
-        $channelPayment->next_retry_at = now()->addSeconds((int) config('channels.retry_delay_seconds', 30));
+        $channelPayment->next_retry_at = now()->addSeconds($this->retryDelaySeconds());
         $channelPayment->pushHistory('STATUS_CHECK_ERROR', ['reason' => $reason]);
         $channelPayment->save();
         $this->maybeMarkPermanent($channelPayment, $userId);
         AuditLog::record('ChannelPayment', $channelPayment->id, 'STATUS_CHECK_ERROR', $before, $channelPayment->toArray(), $userId);
 
         return $channelPayment->fresh();
+    }
+
+    private function maxRetries(): int
+    {
+        return (int) app(SystemConfigService::class)
+            ->get('channel_max_retries', config('channels.max_retries', 3));
+    }
+
+    private function retryDelaySeconds(): int
+    {
+        return (int) app(SystemConfigService::class)
+            ->get('channel_retry_delay_seconds', config('channels.retry_delay_seconds', 30));
     }
 
     private function maybeMarkPermanent(ChannelPayment $channelPayment, ?int $userId = null): void

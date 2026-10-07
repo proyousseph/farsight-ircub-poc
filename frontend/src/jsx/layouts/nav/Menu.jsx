@@ -105,6 +105,12 @@ export const MenuList = [
     permission: 'users.manage',
   },
   {
+    title: 'System Config',
+    iconStyle: <i className="flaticon-381-controls-3"></i>,
+    to: 'system-config',
+    permission: 'config.manage',
+  },
+  {
     title: 'Audit Logs',
     iconStyle: <i className="flaticon-381-search-1"></i>,
     to: 'audit-logs',

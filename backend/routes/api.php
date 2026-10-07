@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\PayerController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\RevenueTypeController;
 use App\Http\Controllers\Api\RoleAdminController;
+use App\Http\Controllers\Api\SystemConfigController;
 use App\Http\Controllers\Api\UserAdminController;
 use App\Http\Controllers\Api\WaterAccountController;
 use App\Http\Controllers\Api\WaterBillController;
@@ -170,4 +171,9 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:roles.manage');
     Route::get('permissions', [RoleAdminController::class, 'permissions'])
         ->middleware('permission:roles.manage|users.manage');
+
+    Route::get('system-config', [SystemConfigController::class, 'index'])
+        ->middleware('permission:config.manage');
+    Route::put('system-config', [SystemConfigController::class, 'update'])
+        ->middleware('permission:config.manage');
 });

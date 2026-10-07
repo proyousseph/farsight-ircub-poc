@@ -25,6 +25,7 @@ const TITLE_MAP = {
   "fmis-reconciliation": "FMIS Journals",
   users: "Users & Roles",
   "audit-logs": "Audit Logs",
+  "system-config": "System Configuration",
 };
 
 function readUserSession() {

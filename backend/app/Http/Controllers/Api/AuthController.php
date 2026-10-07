@@ -35,7 +35,9 @@ class AuthController extends Controller
             ]);
         }
 
-        $twoFactorOn = (bool) config('ircub.two_factor.enabled_globally', true) && $user->two_factor_enabled;
+        $twoFactorGlobal = (bool) app(\App\Services\SystemConfigService::class)
+            ->get('two_factor_globally_enabled', config('ircub.two_factor.enabled_globally', true));
+        $twoFactorOn = $twoFactorGlobal && $user->two_factor_enabled;
         if ($twoFactorOn) {
             $otp = $credentials['otp'] ?? null;
             if (! $otp) {

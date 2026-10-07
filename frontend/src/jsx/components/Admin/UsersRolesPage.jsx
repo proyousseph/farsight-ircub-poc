@@ -13,6 +13,7 @@ import {
 const UsersRolesPage = () => {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [roleTree, setRoleTree] = useState([]);
   const [permissions, setPermissions] = useState([]);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -20,7 +21,7 @@ const UsersRolesPage = () => {
   const [userForm, setUserForm] = useState({
     name: '', email: '', password: 'Password@123', role_ids: [], is_active: true, two_factor_enabled: false,
   });
-  const [roleForm, setRoleForm] = useState({ name: '', description: '', permission_ids: [] });
+  const [roleForm, setRoleForm] = useState({ name: '', description: '', parent_id: '', permission_ids: [] });
 
   const load = async () => {
     setError('');
@@ -28,6 +29,7 @@ const UsersRolesPage = () => {
       const [u, r, p] = await Promise.all([listUsers({ per_page: 50 }), listRoles(), listPermissions()]);
       setUsers(u.data.data || []);
       setRoles(r.data.data || []);
+      setRoleTree(r.data.tree || []);
       setPermissions(p.data.data || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load users/roles.');
@@ -57,16 +59,31 @@ const UsersRolesPage = () => {
     setInfo('');
     try {
       const { data } = await createRole({
-        ...roleForm,
+        name: roleForm.name,
+        description: roleForm.description,
+        parent_id: roleForm.parent_id ? Number(roleForm.parent_id) : null,
         permission_ids: roleForm.permission_ids.map(Number),
       });
       setInfo(data.message);
-      setRoleForm({ name: '', description: '', permission_ids: [] });
+      setRoleForm({ name: '', description: '', parent_id: '', permission_ids: [] });
       await load();
     } catch (err) {
-      setError(err.response?.data?.message || 'Create role failed.');
+      setError(err.response?.data?.message || err.response?.data?.errors?.permission_ids?.[0] || 'Create role failed.');
     }
   };
+
+  const renderTree = (nodes, depth = 0) => (
+    <ul className={depth === 0 ? 'list-unstyled mb-0' : 'list-unstyled ms-3 border-start ps-3'}>
+      {nodes.map((n) => (
+        <li key={n.id} className="mb-1">
+          <strong>{n.name}</strong>
+          <span className="badge badge-light ms-1">L{n.level}</span>
+          {n.is_system && <span className="badge badge-secondary ms-1">system</span>}
+          {n.children?.length > 0 && renderTree(n.children, depth + 1)}
+        </li>
+      ))}
+    </ul>
+  );
 
   const toggleActive = async (user) => {
     try {
@@ -158,12 +175,28 @@ const UsersRolesPage = () => {
 
       {tab === 'roles' && (
         <div className="row ircub-admin-grid">
-          <div className="col-12 col-lg-5">
-            <div className="card"><div className="card-header"><h4 className="card-title">Create custom role</h4></div>
+          <div className="col-12 col-lg-4 mb-3">
+            <div className="card h-100">
+              <div className="card-header"><h4 className="card-title mb-0">Role hierarchy</h4></div>
               <div className="card-body">
-                <form onSubmit={onCreateRole}>
+                <p className="text-muted small">Child roles must use a permission subset of their parent.</p>
+                {roleTree.length ? renderTree(roleTree) : <span className="text-muted">No roles yet.</span>}
+              </div>
+            </div>
+          </div>
+          <div className="col-12 col-lg-4 mb-3">
+            <div className="card h-100"><div className="card-header"><h4 className="card-title mb-0">Create custom role</h4></div>
+              <div className="card-body">
+                <form onSubmit={onCreateRole} className="ircub-admin-form">
                   <input className="form-control mb-2" placeholder="Role name" value={roleForm.name} onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })} required />
                   <textarea className="form-control mb-2" placeholder="Description" value={roleForm.description} onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })} />
+                  <label className="form-label mb-1">Parent role (optional)</label>
+                  <select className="form-control mb-2" value={roleForm.parent_id} onChange={(e) => setRoleForm({ ...roleForm, parent_id: e.target.value })}>
+                    <option value="">— Top-level —</option>
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.id}>{`${'—'.repeat(r.level || 0)} ${r.name}`}</option>
+                    ))}
+                  </select>
                   <div style={{ maxHeight: 240, overflow: 'auto' }} className="mb-2 border p-2">
                     {permissions.map((p) => (
                       <label key={p.id} className="d-block form-check">
@@ -177,12 +210,14 @@ const UsersRolesPage = () => {
               </div>
             </div>
           </div>
-          <div className="col-12 col-lg-7">
-            <div className="card"><div className="card-body">
+          <div className="col-12 col-lg-4 mb-3">
+            <div className="card h-100"><div className="card-header"><h4 className="card-title mb-0">All roles</h4></div><div className="card-body">
               {roles.map((r) => (
                 <div key={r.id} className="mb-3 border-bottom pb-2">
                   <strong>{r.name}</strong> <span className="badge badge-light">{r.slug}</span>
+                  <span className="badge badge-light ms-1">L{r.level ?? 0}</span>
                   {r.is_system && <span className="badge badge-secondary ms-1">system</span>}
+                  {r.parent && <div className="text-muted small">Parent: {r.parent.name}</div>}
                   <div className="text-muted small">{r.description}</div>
                   <div className="small">{(r.permissions || []).map((p) => p.slug).join(', ')}</div>
                   {!r.is_system && (

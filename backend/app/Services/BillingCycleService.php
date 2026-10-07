@@ -103,9 +103,16 @@ class BillingCycleService
                 $totalDue = round(max(0, $charges - $paymentsApplied), 2);
 
                 $avg = $this->threeMonthAverage($account->id, $period);
-                $abnormal = $avg > 0 && $consumption > ($avg * 2);
+                $thresholdPct = (int) app(\App\Services\SystemConfigService::class)
+                    ->get('abnormal_consumption_pct', 200);
+                $abnormal = $avg > 0 && $consumption > ($avg * ($thresholdPct / 100));
                 $abnormalReason = $abnormal
-                    ? sprintf('Consumption %.3f m³ exceeds 200%% of 3-month average %.3f m³.', $consumption, $avg)
+                    ? sprintf(
+                        'Consumption %.3f m³ exceeds %d%% of 3-month average %.3f m³.',
+                        $consumption,
+                        $thresholdPct,
+                        $avg
+                    )
                     : null;
 
                 $status = $abnormal ? 'HELD' : 'RELEASED';
