@@ -28,8 +28,20 @@ export const MenuList = [
   {
     title: 'Payments',
     iconStyle: <i className="flaticon-381-diamond"></i>,
-    to: 'payments',
+    classsChange: 'mm-collapse',
     permission: 'payments.view',
+    content: [
+      {
+        title: 'Cash / Manual',
+        to: 'payments',
+        permission: 'payments.view',
+      },
+      {
+        title: 'Channel Payments',
+        to: 'channel-payments',
+        permission: 'payments.view',
+      },
+    ],
   },
   {
     title: 'Water Billing',
@@ -68,7 +80,7 @@ export const MenuList = [
     title: 'Reconciliation',
     iconStyle: <i className="flaticon-381-notepad"></i>,
     to: 'reconciliation',
-    permission: 'fmis.reconcile',
+    permission: 'channels.reconcile',
   },
   {
     title: 'Reports',

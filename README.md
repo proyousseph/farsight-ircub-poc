@@ -101,9 +101,18 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 - [x] Payer 360° includes water bills and combined balance
 - [x] Verified against POC Module 4 checklist (readings, cycle, PDF/notify, abnormal hold, statement)
 
+### Done (Day 5 — Payment Channel Integration)
+
+- [x] Mock FX rates API (`/mock-api/rates`) with dynamic USD↔SOS rates
+- [x] Mock bank / mobile money initiate + status endpoints
+- [x] Channel payment flow: fetch FX → initiate → callback/status → update assessment/bill
+- [x] Multi-currency (USD + local SOS) with stored FX snapshot
+- [x] Retry status checks up to 3 times; permanent failure + supervisor notification
+- [x] Daily channel reconciliation vs mock statement file
+- [x] Frontend: Channel Payments + Reconciliation pages
+
 ### Next
 
-- [ ] Payment channel mocks + retries
 - [ ] FMIS posting & reconciliation
 - [ ] Executive dashboard + forecast
 - [ ] Dockerized app deploy to `ircub.waagefaal.so`
