@@ -9,8 +9,6 @@ import { useScrollPosition } from "@n8tb1t/use-scroll-position";
 import { getVisibleMenu } from './Menu';
 import { ThemeContext } from "../../../context/ThemeContext";
 import { Logout } from "../../../store/actions/AuthActions";
-/// Image
-import profile from "../../../assets/images/profile/pic1.jpg";
 
 function readUserSession() {
   try {
@@ -117,13 +115,11 @@ const SideBar = () => {
       <PerfectScrollbar className="dlabnav-scroll">
         <ul className="metismenu" id="menu">
           <li className="nav-item header-profile">
-            <div className="nav-link">
-              <img src={profile} width={20} alt="" />
-              <div className="header-info ms-3">
-                <span className="font-w600">Hi, <b>{session.name}</b></span>
-                <small className="text-end font-w400">{session.email || 'IRCUB user'}</small>
+            <div className="nav-link" style={{ display: 'block', paddingTop: '1rem', paddingBottom: '0.75rem' }}>
+              <div className="header-info ms-0">
+                <span className="font-w600 d-block">{session.name}</span>
                 {session.role && (
-                  <small className="d-block text-primary font-w500">{session.role}</small>
+                  <small className="d-block text-primary font-w500 mt-1">{session.role}</small>
                 )}
               </div>
             </div>
