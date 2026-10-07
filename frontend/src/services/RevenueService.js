@@ -31,3 +31,15 @@ export function uploadPaymentsCsv(file) {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 }
+
+export function requestPaymentReversal(id, reason) {
+  return api.post(`/payments/${id}/reversal-request`, { reason });
+}
+
+export function approvePaymentReversal(id, notes = '') {
+  return api.post(`/payments/${id}/reversal-approve`, { notes });
+}
+
+export function rejectPaymentReversal(id, notes = '') {
+  return api.post(`/payments/${id}/reversal-reject`, { notes });
+}

@@ -67,6 +67,12 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 - [x] DB-driven roles & permissions
 - [x] Six system roles seeded with permissions
 - [x] Sanctum auth API: login / logout / me
+- [x] Password policy (min 10 + upper/lower/number/symbol) on user create/update
+- [x] Optional 2FA stub (demo OTP `123456`; enabled on `auditor@ircub.test`)
+- [x] Users & Roles admin API + UI (custom roles, activate/deactivate users)
+- [x] Payment reversal segregation of duties (request ≠ approve)
+- [x] Audit log browser API + UI
+- [x] Taxpayer self-service scoped to linked `payer_id`
 - [x] Permission middleware
 - [x] Dompet login wired to Laravel API
 - [x] Role-based sidebar menus
@@ -138,9 +144,9 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 - [x] ERD — see [`docs/ERD.md`](docs/ERD.md)
 - [x] OpenAPI/Swagger + Postman — see [`docs/API.md`](docs/API.md), UI at `/docs/api`
 - [x] Automated tests (PHPUnit + module smoke scripts) — see [Testing](#testing)
+- [x] README pass for Module 1 polish gaps (SoD, 2FA stub, admin/audit/self-service)
 - [ ] Dockerized / Nginx deploy to Contabo
 - [ ] HTTPS demo on `ircub.waagefaal.so`
-- [ ] README final pass
 
 ---
 
@@ -239,7 +245,7 @@ cd backend
 composer test
 ```
 
-**Last run:** 16 tests, 73 assertions — all passed.
+**Last run:** 20 tests, 99 assertions — all passed.
 
 ### B) Module smoke scripts (needs Postgres + Redis)
 
@@ -250,9 +256,10 @@ cd backend
 php scripts/verify_module5.php   # channel FX / callback / retries / recon
 php scripts/verify_module6.php   # FMIS posting / reverse / recon
 php scripts/verify_module7.php   # dashboard aggregates / OLS / alerts
+php scripts/verify_gaps.php      # SoD reversals, 2FA flag, taxpayer link
 ```
 
-**Last run:** Module 5 10/10 · Module 6 13/13 · Module 7 12/12.
+**Last run:** Module 5 10/10 · Module 6 13/13 · Module 7 12/12 · Gaps 6/6.
 
 ### Run everything
 
@@ -357,9 +364,9 @@ UI: login as `admin@ircub.test` or `supervisor@ircub.test` → **Dashboard**.
 - Dashboard forecast uses OLS on monthly totals (transparent POC model); not a production time-series suite.
 - Dashboard “real-time” updates use short-interval polling rather than WebSockets.
 - Only sandbox / test data is used — no real personal, taxpayer, or financial data.
-- Optional 2FA is planned as a configurable stub, not a full production MFA product.
+- Optional 2FA is a **stub** (shared demo OTP), not a production TOTP/SMS product.
 - Frontend still contains Dompet demo pages (e.g. `/dashboard-demo`) that can be hidden later.
-- Hosted HTTPS demo on Contabo is the remaining deploy/polish item.
+- Hosted HTTPS demo on Contabo is the remaining deploy item (do last).
 
 ---
 

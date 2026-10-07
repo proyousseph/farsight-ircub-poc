@@ -12,9 +12,11 @@ import loginbg from "../../assets/images/bg-login.jpg";
 function Login(props) {
   let year = new Date().getFullYear();
   const [email, setEmail] = useState('admin@ircub.test');
-  let errorsObj = { email: '', password: '' };
+  let errorsObj = { email: '', password: '', otp: '' };
   const [errors, setErrors] = useState(errorsObj);
   const [password, setPassword] = useState('Password@123');
+  const [otp, setOtp] = useState('');
+  const needs2fa = Boolean(props.errorMessage?.requires_2fa);
 
   const dispatch = useDispatch();
   const nav = useNavigate();
@@ -31,12 +33,16 @@ function Login(props) {
       errorObj.password = 'Password is Required';
       error = true;
     }
+    if (needs2fa && otp === '') {
+      errorObj.otp = 'OTP is required for this account';
+      error = true;
+    }
     setErrors(errorObj);
     if (error) {
       return;
     }
     dispatch(loadingToggleAction(true));
-    dispatch(loginAction(email, password, nav));
+    dispatch(loginAction(email, password, nav, needs2fa ? otp : null));
   }
 
   return (
@@ -74,7 +80,7 @@ function Login(props) {
                       </div>
                       {props.errorMessage && (
                         <div className='bg-red-300 text-red-900 border border-red-900 p-1 my-2'>
-                          {props.errorMessage}
+                          {typeof props.errorMessage === 'string' ? props.errorMessage : props.errorMessage.message}
                         </div>
                       )}
                       {props.successMessage && (
@@ -106,7 +112,22 @@ function Login(props) {
                             }
                           />
                           {errors.password && <div className="text-danger fs-12">{errors.password}</div>}
+                          <small className="text-muted">Policy: min 10 chars with upper, lower, number, symbol.</small>
                         </div>
+                        {needs2fa && (
+                          <div className="form-group">
+                            <label className="mb-2"><strong>2FA OTP</strong> <span className='required'> *</span></label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={otp}
+                              placeholder="Demo OTP: 123456"
+                              onChange={(e) => setOtp(e.target.value)}
+                            />
+                            {errors.otp && <div className="text-danger fs-12">{errors.otp}</div>}
+                            <small className="text-muted">Optional 2FA stub — auditor account uses OTP 123456.</small>
+                          </div>
+                        )}
                         <div className="form-row d-flex justify-content-between mt-4 mb-2">
                           <div className="form-group">
                             <div className="form-check custom-checkbox ml-1 ">

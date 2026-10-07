@@ -124,5 +124,14 @@ class PayerSeeder extends Seeder
                     : null,
             ]);
         });
+
+        // Link taxpayer self-service user to Amina's payer profile.
+        $aminaId = Payer::query()->where('tin', 'TIN-100001')->value('id');
+        if ($aminaId) {
+            User::query()->where('email', 'taxpayer@ircub.test')->update(['payer_id' => $aminaId]);
+        }
+
+        // Demo optional 2FA stub (OTP 123456) on auditor account.
+        User::query()->where('email', 'auditor@ircub.test')->update(['two_factor_enabled' => true]);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,6 +22,8 @@ class User extends Authenticatable
         'password',
         'is_active',
         'must_change_password',
+        'two_factor_enabled',
+        'payer_id',
     ];
 
     protected $hidden = [
@@ -35,7 +38,13 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
+            'two_factor_enabled' => 'boolean',
         ];
+    }
+
+    public function payer(): BelongsTo
+    {
+        return $this->belongsTo(Payer::class);
     }
 
     public function roles(): BelongsToMany
@@ -76,6 +85,8 @@ class User extends Authenticatable
             'email' => $this->email,
             'phone' => $this->phone,
             'is_active' => $this->is_active,
+            'two_factor_enabled' => (bool) $this->two_factor_enabled,
+            'payer_id' => $this->payer_id,
             'roles' => $roles->map(fn (Role $role) => [
                 'id' => $role->id,
                 'name' => $role->name,

@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\Payer;
 use App\Models\RevenueType;
 use App\Services\ControlNumberGenerator;
+use App\Support\OwnsPayerScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,7 @@ class AssessmentController extends Controller
     {
         $assessments = Assessment::query()
             ->with(['payer:id,tin,full_name,phone', 'creator:id,name'])
+            ->tap(fn ($q) => OwnsPayerScope::apply($q, $request->user(), 'assessments.view', 'assessments.view_own'))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = '%'.$request->string('q').'%';
                 $q->where(function ($builder) use ($term) {
@@ -88,8 +90,12 @@ class AssessmentController extends Controller
         ], 201);
     }
 
-    public function show(Assessment $assessment): JsonResponse
+    public function show(Request $request, Assessment $assessment): JsonResponse
     {
+        if (! OwnsPayerScope::canAccessPayer($request->user(), (int) $assessment->payer_id, 'assessments.view', 'assessments.view_own')) {
+            return response()->json(['message' => 'You do not have access to this assessment.'], 403);
+        }
+
         $assessment->load([
             'payer:id,tin,full_name,phone,email',
             'payments',

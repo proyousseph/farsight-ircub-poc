@@ -43,9 +43,9 @@ export function Logout(navigate) {
   };
 }
 
-export function loginAction(email, password, navigate) {
+export function loginAction(email, password, navigate, otp = null) {
   return (dispatch) => {
-    login(email, password)
+    login(email, password, otp)
       .then((response) => {
         saveTokenInLocalStorage(response.data);
         runLogoutTimer(dispatch, Number(response.data.expiresIn) * 1000, navigate);
@@ -53,9 +53,12 @@ export function loginAction(email, password, navigate) {
         navigate('/dashboard');
       })
       .catch((error) => {
-        const errorMessage = formatError(
-          error.response?.data || { message: 'Unable to reach IRCUB API.' },
-        );
+        const data = error.response?.data || { message: 'Unable to reach IRCUB API.' };
+        if (data.requires_2fa) {
+          dispatch(loginFailedAction({ requires_2fa: true, message: data.message }));
+          return;
+        }
+        const errorMessage = formatError(data);
         dispatch(loginFailedAction(errorMessage));
       });
   };

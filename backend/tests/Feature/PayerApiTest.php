@@ -39,10 +39,19 @@ class PayerApiTest extends TestCase
         ]);
     }
 
-    public function test_taxpayer_cannot_list_all_payers(): void
+    public function test_taxpayer_only_lists_own_payer_profile(): void
     {
-        Sanctum::actingAs($this->taxpayerUser());
+        // Link taxpayer to a payer for self-service scope.
+        $payer = $this->ensureDemoPayer();
+        $taxpayer = $this->taxpayerUser();
+        $taxpayer->payer_id = $payer->id;
+        $taxpayer->save();
 
-        $this->getJson('/api/payers')->assertForbidden();
+        Sanctum::actingAs($taxpayer->fresh());
+
+        $response = $this->getJson('/api/payers')->assertOk();
+        $rows = $response->json('data') ?? [];
+        $this->assertCount(1, $rows);
+        $this->assertSame((int) $payer->id, (int) $rows[0]['id']);
     }
 }

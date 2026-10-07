@@ -12,6 +12,7 @@ echo "=== 2) Module smoke scripts (uses .env Postgres/Redis) ==="
 php scripts/verify_module5.php
 php scripts/verify_module6.php
 php scripts/verify_module7.php
+php scripts/verify_gaps.php
 
 echo
 echo "ALL TEST SUITES PASSED"

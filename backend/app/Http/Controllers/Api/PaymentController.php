@@ -8,6 +8,8 @@ use App\Models\AuditLog;
 use App\Models\Payment;
 use App\Models\Payer;
 use App\Models\RevenueType;
+use App\Services\PaymentReversalService;
+use App\Support\OwnsPayerScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,10 +18,15 @@ use Illuminate\Support\Facades\Validator;
 
 class PaymentController extends Controller
 {
+    public function __construct(private PaymentReversalService $reversals)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $payments = Payment::query()
             ->with(['payer:id,tin,full_name', 'assessment:id,control_number,status', 'creator:id,name'])
+            ->tap(fn ($q) => OwnsPayerScope::apply($q, $request->user(), 'payments.view', 'payments.view_own'))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = '%'.$request->string('q').'%';
                 $q->where(function ($builder) use ($term) {
@@ -297,6 +304,60 @@ class PaymentController extends Controller
             ],
             'accepted' => $accepted,
             'rejected' => $rejected,
+        ]);
+    }
+
+    public function requestReversal(Request $request, Payment $payment): JsonResponse
+    {
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+        ]);
+
+        try {
+            $payment = $this->reversals->request($payment, $request->user(), $data['reason']);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Reversal requested. A different supervisor must approve.',
+            'payment' => $payment,
+        ]);
+    }
+
+    public function approveReversal(Request $request, Payment $payment): JsonResponse
+    {
+        $data = $request->validate([
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $payment = $this->reversals->approve($payment, $request->user(), $data['notes'] ?? null);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Payment reversed (SoD approved).',
+            'payment' => $payment,
+        ]);
+    }
+
+    public function rejectReversal(Request $request, Payment $payment): JsonResponse
+    {
+        $data = $request->validate([
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $payment = $this->reversals->reject($payment, $request->user(), $data['notes'] ?? null);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Reversal request rejected.',
+            'payment' => $payment,
         ]);
     }
 }

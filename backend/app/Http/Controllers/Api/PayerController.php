@@ -13,11 +13,15 @@ class PayerController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
         $payers = Payer::query()
             ->withCount(['waterAccounts', 'obligations'])
             ->search($request->string('q')->toString())
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->boolean('duplicates_only'), fn ($q) => $q->where('duplicate_flagged', true))
+            ->when($user && ! $user->hasPermission('payers.view') && $user->hasPermission('payers.view_own'), function ($q) use ($user) {
+                $q->where('id', $user->payer_id ?: 0);
+            })
             ->latest()
             ->paginate((int) $request->integer('per_page', 15));
 
@@ -92,8 +96,15 @@ class PayerController extends Controller
         ], 201);
     }
 
-    public function show(Payer $payer): JsonResponse
+    public function show(Request $request, Payer $payer): JsonResponse
     {
+        $user = $request->user();
+        if ($user && ! $user->hasPermission('payers.view') && $user->hasPermission('payers.view_own')) {
+            if ((int) $user->payer_id !== (int) $payer->id) {
+                return response()->json(['message' => 'You can only view your own payer profile.'], 403);
+            }
+        }
+
         $payer->load([
             'waterAccounts',
             'obligations',

@@ -18,6 +18,12 @@ class Payment extends Model
         'external_ref',
         'paid_at',
         'status',
+        'reversal_status',
+        'reversal_reason',
+        'reversal_requested_by',
+        'reversal_requested_at',
+        'reversal_reviewed_by',
+        'reversal_reviewed_at',
         'fmis_status',
         'fmis_reference',
         'fmis_posted_at',
@@ -32,6 +38,8 @@ class Payment extends Model
             'amount' => 'decimal:2',
             'paid_at' => 'datetime',
             'fmis_posted_at' => 'datetime',
+            'reversal_requested_at' => 'datetime',
+            'reversal_reviewed_at' => 'datetime',
         ];
     }
 

@@ -8,8 +8,13 @@ export function signUp() {
   return Promise.reject(new Error('Self-registration is disabled for IRCUB POC.'));
 }
 
-export function login(email, password) {
-  return api.post('/auth/login', { email, password }).then((response) => {
+export function login(email, password, otp = null) {
+  const payload = { email, password };
+  if (otp) {
+    payload.otp = otp;
+  }
+
+  return api.post('/auth/login', payload).then((response) => {
     const { token, user } = response.data;
     return {
       data: {
@@ -36,10 +41,15 @@ export function logoutRequest() {
 }
 
 export function formatError(errorResponse) {
+  if (errorResponse?.requires_2fa) {
+    return errorResponse.message || 'Two-factor authentication required.';
+  }
+
   const message =
     errorResponse?.message ||
     errorResponse?.errors?.email?.[0] ||
     errorResponse?.errors?.password?.[0] ||
+    errorResponse?.errors?.otp?.[0] ||
     'Login failed. Please check your credentials.';
 
   swal('Oops', message, 'error', { button: 'Try Again!' });

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AssessmentController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingCycleController;
 use App\Http\Controllers\Api\ChannelPaymentController;
@@ -12,6 +13,8 @@ use App\Http\Controllers\Api\MeterReadingController;
 use App\Http\Controllers\Api\PayerController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\RevenueTypeController;
+use App\Http\Controllers\Api\RoleAdminController;
+use App\Http\Controllers\Api\UserAdminController;
 use App\Http\Controllers\Api\WaterAccountController;
 use App\Http\Controllers\Api\WaterBillController;
 use Illuminate\Support\Facades\Route;
@@ -37,30 +40,36 @@ Route::middleware('auth:sanctum')->group(function () {
     })->middleware('permission:dashboard.view');
 
     Route::get('payers', [PayerController::class, 'index'])
-        ->middleware('permission:payers.view');
+        ->middleware('permission:payers.view|payers.view_own');
     Route::post('payers', [PayerController::class, 'store'])
         ->middleware('permission:payers.create');
     Route::get('payers/{payer}', [PayerController::class, 'show'])
-        ->middleware('permission:payers.view');
+        ->middleware('permission:payers.view|payers.view_own');
     Route::put('payers/{payer}', [PayerController::class, 'update'])
         ->middleware('permission:payers.create');
 
     Route::get('revenue-types', [RevenueTypeController::class, 'index'])
-        ->middleware('permission:assessments.view');
+        ->middleware('permission:assessments.view|assessments.view_own');
 
     Route::get('assessments', [AssessmentController::class, 'index'])
-        ->middleware('permission:assessments.view');
+        ->middleware('permission:assessments.view|assessments.view_own');
     Route::post('assessments', [AssessmentController::class, 'store'])
         ->middleware('permission:assessments.create');
     Route::get('assessments/{assessment}', [AssessmentController::class, 'show'])
-        ->middleware('permission:assessments.view');
+        ->middleware('permission:assessments.view|assessments.view_own');
 
     Route::get('payments', [PaymentController::class, 'index'])
-        ->middleware('permission:payments.view');
+        ->middleware('permission:payments.view|payments.view_own');
     Route::post('payments', [PaymentController::class, 'store'])
         ->middleware('permission:payments.capture');
     Route::post('payments/upload', [PaymentController::class, 'upload'])
         ->middleware('permission:payments.capture');
+    Route::post('payments/{payment}/reversal-request', [PaymentController::class, 'requestReversal'])
+        ->middleware('permission:payments.request_reversal');
+    Route::post('payments/{payment}/reversal-approve', [PaymentController::class, 'approveReversal'])
+        ->middleware('permission:payments.approve_reversal');
+    Route::post('payments/{payment}/reversal-reject', [PaymentController::class, 'rejectReversal'])
+        ->middleware('permission:payments.approve_reversal');
 
     Route::get('water-accounts', [WaterAccountController::class, 'index'])
         ->middleware('permission:bills.view|meters.capture|billing.run');
@@ -141,4 +150,24 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:dashboard.view');
     Route::post('dashboard/refresh', [DashboardController::class, 'refresh'])
         ->middleware('permission:dashboard.view|reports.view');
+
+    // Module 1 polish — admin + audit
+    Route::get('audit-logs', [AuditLogController::class, 'index'])
+        ->middleware('permission:audit.view');
+
+    Route::get('users', [UserAdminController::class, 'index'])
+        ->middleware('permission:users.manage');
+    Route::post('users', [UserAdminController::class, 'store'])
+        ->middleware('permission:users.manage');
+    Route::put('users/{user}', [UserAdminController::class, 'update'])
+        ->middleware('permission:users.manage');
+
+    Route::get('roles', [RoleAdminController::class, 'index'])
+        ->middleware('permission:roles.manage|users.manage');
+    Route::post('roles', [RoleAdminController::class, 'store'])
+        ->middleware('permission:roles.manage');
+    Route::put('roles/{role}', [RoleAdminController::class, 'update'])
+        ->middleware('permission:roles.manage');
+    Route::get('permissions', [RoleAdminController::class, 'permissions'])
+        ->middleware('permission:roles.manage|users.manage');
 });

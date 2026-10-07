@@ -132,6 +132,8 @@ import WaterBillsPage from "./components/Water/WaterBillsPage";
 import ChannelPaymentsPage from "./components/Channels/ChannelPaymentsPage";
 import ReconciliationPage from "./components/Channels/ReconciliationPage";
 import FmisPage from "./components/Fmis/FmisPage";
+import UsersRolesPage from "./components/Admin/UsersRolesPage";
+import AuditLogsPage from "./components/Admin/AuditLogsPage";
 
 const Markup = () => {
   const allroutes = [
@@ -256,9 +258,9 @@ const Markup = () => {
     { url: "fmis", component: <FmisPage /> },
     { url: "fmis-reconciliation", component: <FmisPage /> },
     { url: "reports", component: <ExecutiveDashboard /> },
-    { url: "users", component: <ModulePlaceholder title="Users & Roles" moduleLabel="Module 1 (API ready)" description="Role permissions are live in the API. A full admin UI can be added next." /> },
-    { url: "audit-logs", component: <ModulePlaceholder title="Audit Logs" moduleLabel="Module 3" description="Tamper-evident audit trails are recorded with revenue transactions; a dedicated browser UI can be added next." /> },
-    { url: "my-assessments", component: <ModulePlaceholder title="My Assessments" moduleLabel="Module 3" description="Taxpayer self-service assessments can be wired to the existing assessments API next." /> },
+    { url: "users", component: <UsersRolesPage /> },
+    { url: "audit-logs", component: <AuditLogsPage /> },
+    { url: "my-assessments", component: <AssessmentsPage /> },
   ];
 
 

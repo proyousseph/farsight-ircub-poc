@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listPayers } from '../../../services/PayerService';
-import { createPayment, listAssessments, listPayments, listRevenueTypes, uploadPaymentsCsv } from '../../../services/RevenueService';
+import {
+  approvePaymentReversal,
+  createPayment,
+  listAssessments,
+  listPayments,
+  listRevenueTypes,
+  rejectPaymentReversal,
+  requestPaymentReversal,
+  uploadPaymentsCsv,
+} from '../../../services/RevenueService';
 import { hasPermission } from '../../../services/AuthService';
 
 const PAYMENTS_CSV_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/payments-upload-sample.csv`;
@@ -25,6 +34,8 @@ const PaymentsPage = () => {
   const [uploadResult, setUploadResult] = useState(null);
   const [saving, setSaving] = useState(false);
   const canCapture = hasPermission('payments.capture');
+  const canRequestReversal = hasPermission('payments.request_reversal');
+  const canApproveReversal = hasPermission('payments.approve_reversal');
   const [form, setForm] = useState({
     payer_id: '',
     assessment_id: '',
@@ -231,7 +242,7 @@ const PaymentsPage = () => {
                     <option value="">All statuses</option>
                     <option value="SUCCESS">SUCCESS</option>
                     <option value="FAILED">FAILED</option>
-                    <option value="PENDING">PENDING</option>
+                    <option value="REVERSED">REVERSED</option>
                   </select>
                 </div>
                 <div className="col-md-2">
@@ -303,9 +314,10 @@ const PaymentsPage = () => {
                         <th>Payer</th>
                         <th>Amount</th>
                         <th>Channel</th>
-                        <th>Assessment</th>
+                        <th>Status</th>
                         <th>FMIS</th>
-                        <th>Paid at</th>
+                        <th>Reversal</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -315,12 +327,64 @@ const PaymentsPage = () => {
                           <td>{p.payer?.tin}<br /><small>{p.payer?.full_name}</small></td>
                           <td>{Number(p.amount).toFixed(2)} {p.currency}</td>
                           <td>{p.channel}</td>
-                          <td>{p.assessment?.control_number || '—'}</td>
+                          <td>{p.status}</td>
                           <td>{p.fmis_status}</td>
-                          <td>{p.paid_at ? new Date(p.paid_at).toLocaleString() : '—'}</td>
+                          <td>{p.reversal_status || '—'}</td>
+                          <td className="text-nowrap">
+                            {canRequestReversal && p.status === 'SUCCESS' && p.reversal_status !== 'PENDING' && (
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-outline-warning me-1"
+                                onClick={async () => {
+                                  const reason = window.prompt('Reason for reversal request?');
+                                  if (!reason) return;
+                                  try {
+                                    await requestPaymentReversal(p.id, reason);
+                                    await load();
+                                  } catch (err) {
+                                    setError(err.response?.data?.message || 'Reversal request failed.');
+                                  }
+                                }}
+                              >
+                                Request reverse
+                              </button>
+                            )}
+                            {canApproveReversal && p.reversal_status === 'PENDING' && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-success me-1"
+                                  onClick={async () => {
+                                    try {
+                                      await approvePaymentReversal(p.id);
+                                      await load();
+                                    } catch (err) {
+                                      setError(err.response?.data?.message || 'Approve failed (SoD).');
+                                    }
+                                  }}
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-outline-danger"
+                                  onClick={async () => {
+                                    try {
+                                      await rejectPaymentReversal(p.id, 'Rejected from UI');
+                                      await load();
+                                    } catch (err) {
+                                      setError(err.response?.data?.message || 'Reject failed.');
+                                    }
+                                  }}
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                          </td>
                         </tr>
                       ))}
-                      {!items.length && <tr><td colSpan="7" className="text-center text-muted">No payments found.</td></tr>}
+                      {!items.length && <tr><td colSpan="8" className="text-center text-muted">No payments found.</td></tr>}
                     </tbody>
                   </table>
                 </div>

@@ -18,5 +18,8 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 php scripts/verify_module7.php
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+php scripts/verify_gaps.php
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 Write-Host "`nALL TEST SUITES PASSED" -ForegroundColor Green
 exit 0

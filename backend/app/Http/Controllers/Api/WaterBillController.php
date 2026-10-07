@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\WaterBill;
 use App\Services\BillingCycleService;
+use App\Support\OwnsPayerScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -25,6 +26,7 @@ class WaterBillController extends Controller
                 'waterAccount:id,account_no,meter_no,tariff_class',
                 'billingCycle:id,period,status',
             ])
+            ->tap(fn ($q) => OwnsPayerScope::apply($q, $request->user(), 'bills.view', 'bills.view_own'))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = '%'.$request->string('q').'%';
                 $q->where(function ($builder) use ($term) {
@@ -49,8 +51,12 @@ class WaterBillController extends Controller
         return response()->json($bills);
     }
 
-    public function show(WaterBill $waterBill): JsonResponse
+    public function show(Request $request, WaterBill $waterBill): JsonResponse
     {
+        if (! OwnsPayerScope::canAccessPayer($request->user(), (int) $waterBill->payer_id, 'bills.view', 'bills.view_own')) {
+            return response()->json(['message' => 'You do not have access to this water bill.'], 403);
+        }
+
         $waterBill->load([
             'payer:id,tin,full_name,phone,email,address',
             'waterAccount',
@@ -99,6 +105,10 @@ class WaterBillController extends Controller
         $data = $request->validate([
             'payer_id' => ['required', 'exists:payers,id'],
         ]);
+
+        if (! OwnsPayerScope::canAccessPayer($request->user(), (int) $data['payer_id'], 'bills.view', 'bills.view_own')) {
+            return response()->json(['message' => 'You can only view your own statement.'], 403);
+        }
 
         $bills = WaterBill::query()
             ->with('waterAccount:id,account_no,meter_no')
