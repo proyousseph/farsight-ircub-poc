@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const ModulePlaceholder = ({ title, dayLabel = 'a later day', description }) => {
+const ModulePlaceholder = ({ title, moduleLabel = 'a later module', description }) => {
   return (
     <>
       <div className="page-titles">
@@ -18,7 +18,7 @@ const ModulePlaceholder = ({ title, dayLabel = 'a later day', description }) => 
             </div>
             <div className="card-body">
               <div className="alert alert-info mb-3">
-                This module is planned for <strong>{dayLabel}</strong> of the IRCUB POC.
+                This screen belongs to <strong>{moduleLabel}</strong> of the IRCUB POC.
               </div>
               <p className="mb-3">
                 {description || 'The page is registered so navigation does not break. Implementation comes next.'}

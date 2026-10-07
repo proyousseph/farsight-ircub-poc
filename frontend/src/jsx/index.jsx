@@ -239,12 +239,12 @@ const Markup = () => {
     { url: "page-error-500", component: <Error500 /> },
     { url: "page-error-503", component: <Error503 /> },
 
-    /// IRCUB - Taxpayer & Customer Registry (Day 2)
+    /// IRCUB — Module 2: Taxpayer & Customer Registry
     { url: "payers", component: <PayersList /> },
     { url: "payers/create", component: <PayerCreate /> },
     { url: "payers/:id", component: <PayerProfile /> },
 
-    /// IRCUB - upcoming modules (placeholders so menu links do not white-screen)
+    /// IRCUB modules (placeholders keep unused menu links from white-screening)
     { url: "assessments", component: <AssessmentsPage /> },
     { url: "payments", component: <PaymentsPage /> },
     { url: "meter-readings", component: <MeterReadingsPage /> },
@@ -256,9 +256,9 @@ const Markup = () => {
     { url: "fmis", component: <FmisPage /> },
     { url: "fmis-reconciliation", component: <FmisPage /> },
     { url: "reports", component: <ExecutiveDashboard /> },
-    { url: "users", component: <ModulePlaceholder title="Users & Roles" dayLabel="Day 1 (API ready)" description="Role permissions are live in the API. A full admin UI can be added next." /> },
-    { url: "audit-logs", component: <ModulePlaceholder title="Audit Logs" dayLabel="Day 3" description="Tamper-evident audit trails will be added with revenue transactions." /> },
-    { url: "my-assessments", component: <ModulePlaceholder title="My Assessments" dayLabel="Day 3" description="Taxpayer self-service assessments will appear after assessment module is built." /> },
+    { url: "users", component: <ModulePlaceholder title="Users & Roles" moduleLabel="Module 1 (API ready)" description="Role permissions are live in the API. A full admin UI can be added next." /> },
+    { url: "audit-logs", component: <ModulePlaceholder title="Audit Logs" moduleLabel="Module 3" description="Tamper-evident audit trails are recorded with revenue transactions; a dedicated browser UI can be added next." /> },
+    { url: "my-assessments", component: <ModulePlaceholder title="My Assessments" moduleLabel="Module 3" description="Taxpayer self-service assessments can be wired to the existing assessments API next." /> },
   ];
 
 

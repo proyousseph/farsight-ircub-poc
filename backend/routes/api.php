@@ -90,7 +90,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('water-bills/{waterBill}/pdf', [WaterBillController::class, 'pdf'])
         ->middleware('permission:bills.view|bills.view_own');
 
-    // Day 5 — Payment channel integration
+    // Module 5 — Payment channel integration
     Route::get('channel/rates', [ChannelPaymentController::class, 'rates'])
         ->middleware('permission:payments.capture|payments.view');
     Route::get('channel/payments', [ChannelPaymentController::class, 'index'])

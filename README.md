@@ -3,7 +3,7 @@
 **Farsight Africa Technologies — Software Developer POC (take-home)**
 
 Candidate: **Yusuf Mohamed Ahmed**  
-Timeline: **5 working days** (not one module per day)
+Scope: **Modules 1–7** (POC brief calendar window: 5 working days)
 
 | Item | Link |
 |---|---|
@@ -56,23 +56,9 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 
 ---
 
-## 5-day take-home plan
-
-The POC brief allows **5 working days**. Work is grouped by delivery days, not by “one document module = one day”.
-
-| Day | Focus | Status |
-|---|---|---|
-| **1** | Project scaffold, Docker (Postgres/Redis), auth, roles & permissions, Dompet login + menus | Done |
-| **2** | Taxpayer/customer registry + tax assessment & collection (control numbers, payments, CSV, audit, filters) | Done |
-| **3** | Water utility billing (tariffs, readings, billing cycle, PDF/SMS mock, statements, abnormal holds) | Done |
-| **4** | Payment channel integration (FX rates, bank/MM mocks, callbacks, retries, channel reconciliation UI) | Done |
-| **5** | FMIS posting & reconciliation → executive dashboard + forecast → Contabo deploy + docs polish | Modules 6–7 verified; deploy next |
-
----
-
 ## Module progress (POC checklist)
 
-Progress below follows the **document modules**, independent of the day labels above.
+Progress follows the **document modules** (1–7). The brief’s take-home window is five working days; delivery is tracked by module, not by calendar day.
 
 ### Module 1 — User & Role Management — Done
 
@@ -261,12 +247,12 @@ These hit the real local `.env` database (start Docker first: `docker compose up
 
 ```bash
 cd backend
-php scripts/verify_day5.php      # channel FX / callback / retries / recon
+php scripts/verify_module5.php   # channel FX / callback / retries / recon
 php scripts/verify_module6.php   # FMIS posting / reverse / recon
 php scripts/verify_module7.php   # dashboard aggregates / OLS / alerts
 ```
 
-**Last run:** Day 5 10/10 · Module 6 13/13 · Module 7 12/12.
+**Last run:** Module 5 10/10 · Module 6 13/13 · Module 7 12/12.
 
 ### Run everything
 
@@ -365,7 +351,7 @@ UI: login as `admin@ircub.test` or `supervisor@ircub.test` → **Dashboard**.
 
 ## Assumptions & limitations
 
-- The take-home window is **5 working days**; modules are batched across those days.
+- The brief allows a short take-home window; work is organized and named by **module**, not by calendar day.
 - Banks, mobile money, SMS, FX rates, and FMIS are simulated with mock services.
 - Mock FMIS journal state lives in Redis cache; reconciliation rebuilds the day index from IRCUB `POSTED` batches when needed.
 - Dashboard forecast uses OLS on monthly totals (transparent POC model); not a production time-series suite.
@@ -373,7 +359,7 @@ UI: login as `admin@ircub.test` or `supervisor@ircub.test` → **Dashboard**.
 - Only sandbox / test data is used — no real personal, taxpayer, or financial data.
 - Optional 2FA is planned as a configurable stub, not a full production MFA product.
 - Frontend still contains Dompet demo pages (e.g. `/dashboard-demo`) that can be hidden later.
-- Hosted HTTPS demo on Contabo is the remaining Day-5 polish item.
+- Hosted HTTPS demo on Contabo is the remaining deploy/polish item.
 
 ---
 

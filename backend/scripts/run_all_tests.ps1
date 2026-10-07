@@ -9,7 +9,7 @@ php artisan test
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "`n=== 2) Module smoke scripts (uses .env Postgres/Redis) ===" -ForegroundColor Cyan
-php scripts/verify_day5.php
+php scripts/verify_module5.php
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 php scripts/verify_module6.php
