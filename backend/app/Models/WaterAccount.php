@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WaterAccount extends Model
 {
@@ -19,5 +20,15 @@ class WaterAccount extends Model
     public function payer(): BelongsTo
     {
         return $this->belongsTo(Payer::class);
+    }
+
+    public function meterReadings(): HasMany
+    {
+        return $this->hasMany(MeterReading::class);
+    }
+
+    public function waterBills(): HasMany
+    {
+        return $this->hasMany(WaterBill::class);
     }
 }

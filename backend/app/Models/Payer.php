@@ -56,6 +56,11 @@ class Payer extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function waterBills(): HasMany
+    {
+        return $this->hasMany(WaterBill::class);
+    }
+
 
     public function scopeSearch(Builder $query, ?string $term): Builder
     {

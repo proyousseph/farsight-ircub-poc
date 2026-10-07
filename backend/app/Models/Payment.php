@@ -10,6 +10,7 @@ class Payment extends Model
     protected $fillable = [
         'payer_id',
         'assessment_id',
+        'water_bill_id',
         'revenue_code',
         'amount',
         'currency',
@@ -38,6 +39,11 @@ class Payment extends Model
     public function assessment(): BelongsTo
     {
         return $this->belongsTo(Assessment::class);
+    }
+
+    public function waterBill(): BelongsTo
+    {
+        return $this->belongsTo(WaterBill::class);
     }
 
     public function creator(): BelongsTo
