@@ -71,8 +71,8 @@ const PayerProfile = () => {
             <div className="card-body">
               <h5 className="mb-3">Balance snapshot</h5>
               <h2 className="text-primary">${Number(profile.balance || 0).toFixed(2)}</h2>
-              <small className="text-muted">
-                Outstanding balance from open tax assessments (water bills added in Day 4).
+              <small className="text-muted d-block">
+                Tax ${Number(profile.tax_balance || 0).toFixed(2)} + Water ${Number(profile.water_balance || 0).toFixed(2)}
               </small>
             </div>
           </div>
@@ -172,8 +172,8 @@ const PayerProfile = () => {
                     </div>
                     <div className="col-md-4">
                       <div className="border rounded p-3 mb-3">
-                        <h6>Bills</h6>
-                        <p className="mb-0 text-muted">{profile.bills?.length || 0} records (Day 4)</p>
+                        <h6>Water bills</h6>
+                        <p className="mb-0">{profile.bills?.length || 0} records</p>
                       </div>
                     </div>
                     <div className="col-md-4">
@@ -198,6 +198,24 @@ const PayerProfile = () => {
                           </tr>
                         ))}
                         {!profile.assessments?.length && <tr><td colSpan="5" className="text-muted">No assessments yet.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                  <h6>Recent water bills</h6>
+                  <div className="table-responsive mb-3">
+                    <table className="table table-sm">
+                      <thead><tr><th>Bill</th><th>Period</th><th>Due</th><th>Paid</th><th>Status</th></tr></thead>
+                      <tbody>
+                        {(profile.bills || []).map((b) => (
+                          <tr key={b.id}>
+                            <td>{b.bill_number}</td>
+                            <td>{b.period}</td>
+                            <td>{Number(b.total_due).toFixed(2)}</td>
+                            <td>{Number(b.amount_paid).toFixed(2)}</td>
+                            <td>{b.status}{b.abnormal_flag ? ' / ABNORMAL' : ''}</td>
+                          </tr>
+                        ))}
+                        {!profile.bills?.length && <tr><td colSpan="5" className="text-muted">No water bills yet.</td></tr>}
                       </tbody>
                     </table>
                   </div>

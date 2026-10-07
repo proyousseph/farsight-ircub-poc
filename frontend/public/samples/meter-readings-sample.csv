@@ -1,0 +1,4 @@
+meter_no,reading_date,reading_value,is_rollover,is_meter_replacement,notes
+MTR-1001,2026-10-05,1040,false,false,Monthly reading
+MTR-2001,2026-10-05,1145,false,false,Monthly reading
+MTR-9999,2026-10-05,10,false,false,Unknown meter should reject

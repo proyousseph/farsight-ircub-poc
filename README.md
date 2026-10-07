@@ -89,9 +89,19 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 - [x] Frontend Assessments + Payments pages
 - [x] Payer 360° profile shows assessments/payments/balance
 
+### Done (Day 4 — Water Utility Billing)
+
+- [x] Tiered water tariffs by class (DOMESTIC / COMMERCIAL / INSTITUTIONAL)
+- [x] Meter readings (individual + CSV), reject lower readings unless rollover/replacement
+- [x] Monthly billing cycle with arrears carry-forward and WATER payment netting
+- [x] Abnormal consumption hold (&gt;200% of 3-month average) + exception report
+- [x] Bill PDF generation + mock SMS/email on release
+- [x] Customer statement (bills, payments, running balance)
+- [x] Frontend: Meter Readings, Billing Cycles, Water Bills
+- [x] Payer 360° includes water bills and combined balance
+
 ### Next
 
-- [ ] Water utility billing
 - [ ] Payment channel mocks + retries
 - [ ] FMIS posting & reconciliation
 - [ ] Executive dashboard + forecast

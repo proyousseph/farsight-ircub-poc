@@ -81,13 +81,17 @@ export function checkAutoLogin(dispatch, navigate) {
   runLogoutTimer(dispatch, timer, navigate);
 }
 
-export function hasPermission(permission) {
+export function getStoredUser() {
   const raw = localStorage.getItem('userDetails');
-  if (!raw) return false;
+  if (!raw) return null;
   try {
-    const stored = JSON.parse(raw);
-    return Array.isArray(stored.permissions) && stored.permissions.includes(permission);
+    return JSON.parse(raw);
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function hasPermission(permission) {
+  const stored = getStoredUser();
+  return Array.isArray(stored?.permissions) && stored.permissions.includes(permission);
 }
