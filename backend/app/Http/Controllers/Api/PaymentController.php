@@ -49,6 +49,7 @@ class PaymentController extends Controller
         $data = $request->validate([
             'payer_id' => ['required', 'exists:payers,id'],
             'assessment_id' => ['nullable', 'exists:assessments,id'],
+            'water_bill_id' => ['nullable', 'exists:water_bills,id'],
             'revenue_code' => ['required', 'string', Rule::exists('revenue_types', 'revenue_code')->where('is_active', true)],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'currency' => ['nullable', 'string', 'max:10'],
@@ -68,10 +69,21 @@ class PaymentController extends Controller
             }
         }
 
+        if (! empty($data['water_bill_id'])) {
+            $waterBill = \App\Models\WaterBill::query()->findOrFail($data['water_bill_id']);
+            if ((int) $waterBill->payer_id !== (int) $data['payer_id']) {
+                return response()->json(['message' => 'Water bill does not belong to the selected payer.'], 422);
+            }
+            if ($waterBill->status === 'HELD') {
+                return response()->json(['message' => 'Cannot pay a held water bill. Release it first.'], 422);
+            }
+        }
+
         $payment = DB::transaction(function () use ($data, $request) {
             $payment = Payment::query()->create([
                 'payer_id' => $data['payer_id'],
                 'assessment_id' => $data['assessment_id'] ?? null,
+                'water_bill_id' => $data['water_bill_id'] ?? null,
                 'revenue_code' => strtoupper($data['revenue_code']),
                 'amount' => $data['amount'],
                 'currency' => $data['currency'] ?? 'USD',
@@ -101,6 +113,23 @@ class PaymentController extends Controller
                 );
             }
 
+            if (! empty($data['water_bill_id'])) {
+                $bill = \App\Models\WaterBill::query()->lockForUpdate()->findOrFail($data['water_bill_id']);
+                $before = $bill->toArray();
+                $bill->amount_paid = (float) $bill->amount_paid + (float) $data['amount'];
+                $bill->save();
+                $bill->refreshStatus();
+
+                AuditLog::record(
+                    'WaterBill',
+                    $bill->id,
+                    'UPDATED',
+                    $before,
+                    $bill->fresh()->toArray(),
+                    $request->user()?->id
+                );
+            }
+
             AuditLog::record(
                 'Payment',
                 $payment->id,
@@ -110,7 +139,11 @@ class PaymentController extends Controller
                 $request->user()?->id
             );
 
-            return $payment->load(['payer:id,tin,full_name', 'assessment:id,control_number,status']);
+            return $payment->load([
+                'payer:id,tin,full_name',
+                'assessment:id,control_number,status',
+                'waterBill:id,bill_number,status',
+            ]);
         });
 
         return response()->json([

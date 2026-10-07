@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             PayerSeeder::class,
             RevenueSeeder::class,
+            WaterBillingSeeder::class,
         ]);
 
 

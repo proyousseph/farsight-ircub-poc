@@ -100,12 +100,14 @@ class PayerController extends Controller
             'creator:id,name,email',
             'assessments' => fn ($q) => $q->latest()->limit(20),
             'payments' => fn ($q) => $q->latest('paid_at')->limit(20),
+            'waterBills' => fn ($q) => $q->with('waterAccount:id,account_no,meter_no')->latest()->limit(20),
         ]);
 
         $assessments = $payer->assessments;
         $payments = $payer->payments;
-        $bills = [];
-        $balance = (float) $assessments->sum(fn ($a) => $a->outstandingAmount());
+        $bills = $payer->waterBills;
+        $taxBalance = (float) $assessments->sum(fn ($a) => $a->outstandingAmount());
+        $waterBalance = (float) $bills->sum(fn ($b) => $b->outstandingAmount());
 
         return response()->json([
             'payer' => $payer,
@@ -113,7 +115,9 @@ class PayerController extends Controller
                 'assessments' => $assessments,
                 'bills' => $bills,
                 'payments' => $payments,
-                'balance' => $balance,
+                'balance' => round($taxBalance + $waterBalance, 2),
+                'tax_balance' => round($taxBalance, 2),
+                'water_balance' => round($waterBalance, 2),
                 'water_accounts_count' => $payer->waterAccounts->count(),
                 'obligations_count' => $payer->obligations->count(),
             ],

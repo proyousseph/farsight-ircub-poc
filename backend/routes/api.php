@@ -2,9 +2,13 @@
 
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BillingCycleController;
+use App\Http\Controllers\Api\MeterReadingController;
 use App\Http\Controllers\Api\PayerController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\RevenueTypeController;
+use App\Http\Controllers\Api\WaterAccountController;
+use App\Http\Controllers\Api\WaterBillController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -49,4 +53,32 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:payments.capture');
     Route::post('payments/upload', [PaymentController::class, 'upload'])
         ->middleware('permission:payments.capture');
+
+    Route::get('water-accounts', [WaterAccountController::class, 'index'])
+        ->middleware('permission:bills.view|meters.capture|billing.run');
+
+    Route::get('meter-readings', [MeterReadingController::class, 'index'])
+        ->middleware('permission:meters.capture|bills.view');
+    Route::post('meter-readings', [MeterReadingController::class, 'store'])
+        ->middleware('permission:meters.capture');
+    Route::post('meter-readings/upload', [MeterReadingController::class, 'upload'])
+        ->middleware('permission:meters.capture');
+
+    Route::get('billing-cycles', [BillingCycleController::class, 'index'])
+        ->middleware('permission:billing.run|bills.view');
+    Route::post('billing-cycles', [BillingCycleController::class, 'store'])
+        ->middleware('permission:billing.run');
+    Route::get('billing-cycles/{billingCycle}', [BillingCycleController::class, 'show'])
+        ->middleware('permission:billing.run|bills.view');
+
+    Route::get('water-bills', [WaterBillController::class, 'index'])
+        ->middleware('permission:bills.view|bills.view_own');
+    Route::get('water-bills/statement', [WaterBillController::class, 'statement'])
+        ->middleware('permission:bills.view|bills.view_own');
+    Route::get('water-bills/{waterBill}', [WaterBillController::class, 'show'])
+        ->middleware('permission:bills.view|bills.view_own');
+    Route::post('water-bills/{waterBill}/release', [WaterBillController::class, 'release'])
+        ->middleware('permission:billing.run');
+    Route::get('water-bills/{waterBill}/pdf', [WaterBillController::class, 'pdf'])
+        ->middleware('permission:bills.view|bills.view_own');
 });
