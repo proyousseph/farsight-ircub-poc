@@ -9,6 +9,8 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+!.env.app.example
+!docker/.env.app.example
 
 # Frontend
 frontend/node_modules/

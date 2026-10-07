@@ -22,7 +22,7 @@ See also the **Testing** section in the root [`README.md`](../README.md).
 | File | Covers |
 |---|---|
 | `AuthApiTest.php` | Login / me / logout |
-| `CookieAuthAndTotpTest.php` | HttpOnly cookie auth, TOTP setup/confirm/login |
+| `CookieAuthAndTotpTest.php` | HttpOnly cookie auth, TOTP setup/confirm/login, security headers, taxpayer seed |
 | `SecurityHardeningTest.php` | Taxpayer payment forbid, deactivated tokens, PDF owner scope, callback IDs, must-change-password |
 | `PerformanceHardeningTest.php` | Pagination cap, indexes/list queries, queue job dispatch, sync retries |
 | `PayerApiTest.php` | Registry create/list/duplicates |
@@ -51,17 +51,36 @@ Relevant test env flags:
 
 ## Last known green run
 
-- **PHPUnit:** 36 tests, 162 assertions — all passed  
-- **Smokes:** Module 5 10/10 · Module 6 13/13 · Module 7 12/12 · Gaps 6/6  
+| Suite | Result |
+|---|---|
+| Full PHPUnit | **36 tests, 161 assertions** — passed |
+| Security + cookie/TOTP | **12 tests, 39 assertions** — passed |
+| Performance | **4 tests, 15 assertions** — passed |
+| Smokes | Module 5 10/10 · Module 6 13/13 · Module 7 12/12 · Gaps 6/6 |
 
 ## Security / auth checks to re-run after changes
 
 ```bash
 cd backend
 php artisan test --filter="SecurityHardeningTest|CookieAuthAndTotpTest|TotpTest"
+php scripts/verify_gaps.php   # needs Postgres
 ```
 
-HTTP smoke (API running on `:8001`):
+What those suites prove:
+
+| Check | Covered by |
+|---|---|
+| HttpOnly `ircub_token` + cookie-only `/me` | `CookieAuthAndTotpTest` |
+| TOTP setup / confirm / login | `CookieAuthAndTotpTest`, `TotpTest` |
+| Security headers (CSP, nosniff, frame deny) | `CookieAuthAndTotpTest` |
+| Taxpayer cannot capture payments | `SecurityHardeningTest` |
+| Deactivated user tokens rejected | `SecurityHardeningTest` |
+| Water bill PDF owner scope | `SecurityHardeningTest` |
+| Callback rejects empty identifiers | `SecurityHardeningTest` |
+| Must-change-password gate | `SecurityHardeningTest` |
+| SoD reversal request ≠ approve | `GapPolishTest` / `verify_gaps.php` |
+
+HTTP smoke (API running on `:8001` or Docker `:8080`):
 
 1. Login returns `cookie_auth: true` and `Set-Cookie: ircub_token=...`
 2. `/api/auth/me` with cookie only (no `Authorization`) → 200  
@@ -80,15 +99,17 @@ Full app (API + queue + scheduler + Nginx SPA on **:8080**):
 
 ```bash
 cp docker/.env.app.example docker/.env.app
-# set APP_KEY in docker/.env.app
+# set APP_KEY in docker/.env.app  (php artisan key:generate --show)
 docker compose --profile app up -d --build
 ```
+
+Details: [`docker/README.md`](../docker/README.md).
 
 | Check | URL / command |
 |---|---|
 | UI | http://localhost:8080 |
-| API health | `curl -s http://localhost:8080/api/auth/me` (401 without cookie) |
+| API (unauth) | `curl -s -o NUL -w "%{http_code}" http://localhost:8080/api/auth/me` → `401` |
 | Swagger | http://localhost:8080/docs/api |
-| PHPUnit | still run on the host (`cd backend && php artisan test`) — not inside the container by default |
+| PHPUnit | host: `cd backend && php artisan test` (not inside the image by default) |
 
-Smoke scripts need a backend `.env` pointing at host Postgres (`127.0.0.1:5433`) and Redis (`127.0.0.1:6379`), or run them against a local PHP install with that config.
+Smoke scripts need backend `.env` pointing at host Postgres (`127.0.0.1:5433`) and Redis (`127.0.0.1:6379`).

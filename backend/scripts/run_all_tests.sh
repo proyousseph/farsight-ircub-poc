@@ -4,12 +4,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "=== 1) PHPUnit (sqlite in-memory) — auth, security, performance, modules ==="
+echo "=== 1) PHPUnit (sqlite in-memory) — all suites ==="
 php artisan test
 
 echo
-echo "=== 1b) Security + TOTP focus ==="
+echo "=== 1b) Security + cookie/TOTP focus ==="
 php artisan test --filter='SecurityHardeningTest|CookieAuthAndTotpTest|TotpTest'
+
+echo
+echo "=== 1c) Performance focus ==="
+php artisan test --filter=PerformanceHardeningTest
 
 echo
 echo "=== 2) Module smoke scripts (uses .env Postgres/Redis) ==="
@@ -18,5 +22,11 @@ php scripts/verify_module6.php
 php scripts/verify_module7.php
 php scripts/verify_gaps.php
 
-echo
-echo "ALL TEST SUITES PASSED"
+cat <<'EOF'
+
+ALL TEST SUITES PASSED
+  - PHPUnit (full)
+  - Security + cookie/TOTP
+  - Performance
+  - Module 5 / 6 / 7 smokes + gaps
+EOF

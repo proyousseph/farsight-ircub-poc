@@ -4,12 +4,16 @@
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
-Write-Host "=== 1) PHPUnit (sqlite in-memory) — auth, security, performance, modules ===" -ForegroundColor Cyan
+Write-Host "=== 1) PHPUnit (sqlite in-memory) — all suites ===" -ForegroundColor Cyan
 php artisan test
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "`n=== 1b) Security + TOTP focus ===" -ForegroundColor Cyan
+Write-Host "`n=== 1b) Security + cookie/TOTP focus ===" -ForegroundColor Cyan
 php artisan test --filter="SecurityHardeningTest|CookieAuthAndTotpTest|TotpTest"
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "`n=== 1c) Performance focus ===" -ForegroundColor Cyan
+php artisan test --filter=PerformanceHardeningTest
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "`n=== 2) Module smoke scripts (uses .env Postgres/Redis) ===" -ForegroundColor Cyan
@@ -25,5 +29,12 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 php scripts/verify_gaps.php
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "`nALL TEST SUITES PASSED" -ForegroundColor Green
+Write-Host @"
+
+ALL TEST SUITES PASSED
+  - PHPUnit (full)
+  - Security + cookie/TOTP
+  - Performance
+  - Module 5 / 6 / 7 smokes + gaps
+"@ -ForegroundColor Green
 exit 0

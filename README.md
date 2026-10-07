@@ -50,6 +50,7 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 ├── frontend/              # React + Vite admin UI (IRCUB routes)
 ├── backend/               # Laravel API + PHPUnit + smoke scripts
 ├── docker/
+│   ├── README.md          # Compose profiles, env, URLs
 │   ├── backend/           # API Dockerfile + entrypoint
 │   ├── frontend/          # SPA Nginx Dockerfile + reverse-proxy conf
 │   ├── .env.app.example   # Env for --profile app
@@ -169,6 +170,7 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 | API (OpenAPI + Postman) | [`docs/API.md`](docs/API.md) · [`docs/openapi.yaml`](docs/openapi.yaml) |
 | Swagger UI (local) | http://127.0.0.1:8001/docs/api |
 | Testing guide | [`docs/TESTING.md`](docs/TESTING.md) · [Testing](#testing) in README |
+| Docker (compose profiles) | [`docker/README.md`](docker/README.md) |
 
 ---
 
@@ -225,7 +227,8 @@ Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`, so the HttpOnl
 
 ### 4. Full stack in Docker (optional)
 
-Builds API + Redis queue worker + scheduler + Nginx SPA (proxies `/api`).
+Builds API + Redis queue worker + scheduler + Nginx SPA (proxies `/api`).  
+Full notes: [`docker/README.md`](docker/README.md).
 
 ```bash
 # From Project/
@@ -242,7 +245,7 @@ docker compose --profile app up -d --build
 
 Containers: `ircub-api`, `ircub-queue`, `ircub-scheduler`, `ircub-web` (+ postgres/redis).
 
-Stop app profile only:
+Stop:
 
 ```bash
 docker compose --profile app down
@@ -264,14 +267,18 @@ composer install
 php artisan test
 ```
 
-Focused suites:
+Focused suites (re-run after security / performance changes):
 
 ```bash
 php artisan test --filter="SecurityHardeningTest|CookieAuthAndTotpTest|TotpTest"
 php artisan test --filter=PerformanceHardeningTest
 ```
 
-**Last run:** **36 tests, 162 assertions — all passed.**
+| Suite | Last green |
+|---|---|
+| Full PHPUnit | **36 tests, 161 assertions** |
+| Security + cookie/TOTP | **12 tests, 39 assertions** |
+| Performance | **4 tests, 15 assertions** |
 
 ### B) Module smoke scripts (needs Postgres + Redis)
 
@@ -301,6 +308,8 @@ macOS / Linux:
 cd backend
 bash scripts/run_all_tests.sh
 ```
+
+Runs full PHPUnit → security focus → performance focus → module smokes + gaps.
 
 ---
 

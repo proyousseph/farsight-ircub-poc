@@ -1,3 +1,8 @@
+# IRCUB local stack
+#   docker compose up -d                         → Postgres + Redis (+ admin UIs)
+#   docker compose --profile app up -d --build   → + API, queue, scheduler, web :8080
+# See docker/README.md
+
 services:
   postgres:
     image: postgres:16-alpine
