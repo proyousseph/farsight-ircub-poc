@@ -80,18 +80,10 @@ class BillingCycleService
                     ->orderByDesc('period')
                     ->first();
 
-                $previousReadingValue = $previousBill
-                    ? (float) $previousBill->current_reading
-                    : (float) ($reading->previous_reading ?? 0);
-
+                // Trust the validated meter reading capture (handles rollover/replacement correctly).
+                $previousReadingValue = (float) ($reading->previous_reading ?? 0);
                 $currentReadingValue = (float) $reading->reading_value;
-                $consumption = (float) $reading->consumption;
-
-                if ($reading->is_rollover || $reading->is_meter_replacement) {
-                    $consumption = max(0, $consumption);
-                } else {
-                    $consumption = max(0, $currentReadingValue - $previousReadingValue);
-                }
+                $consumption = max(0, (float) $reading->consumption);
 
                 $calc = $this->tariffs->calculate($account->tariff_class, $consumption, $periodEnd->toDateString());
 
@@ -230,23 +222,28 @@ class BillingCycleService
             $periods[] = $end->copy()->subMonths($i)->format('Y-m');
         }
 
+        // Prefer accepted meter readings (one latest reading per period).
+        $readings = MeterReading::query()
+            ->where('water_account_id', $waterAccountId)
+            ->where('status', 'ACCEPTED')
+            ->whereIn('period', $periods)
+            ->orderByDesc('reading_date')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('period')
+            ->map(fn ($group) => (float) $group->first()->consumption);
+
+        if ($readings->isNotEmpty()) {
+            return round((float) $readings->avg(), 3);
+        }
+
         $bills = WaterBill::query()
             ->where('water_account_id', $waterAccountId)
             ->whereIn('period', $periods)
             ->get();
 
         if ($bills->isEmpty()) {
-            $readings = MeterReading::query()
-                ->where('water_account_id', $waterAccountId)
-                ->where('status', 'ACCEPTED')
-                ->whereIn('period', $periods)
-                ->get();
-
-            if ($readings->isEmpty()) {
-                return 0.0;
-            }
-
-            return round((float) $readings->avg('consumption'), 3);
+            return 0.0;
         }
 
         return round((float) $bills->avg('consumption'), 3);

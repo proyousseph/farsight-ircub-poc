@@ -99,6 +99,7 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 - [x] Customer statement (bills, payments, running balance)
 - [x] Frontend: Meter Readings, Billing Cycles, Water Bills
 - [x] Payer 360° includes water bills and combined balance
+- [x] Verified against POC Module 4 checklist (readings, cycle, PDF/notify, abnormal hold, statement)
 
 ### Next
 
