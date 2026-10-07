@@ -1,90 +1,93 @@
-import axios from 'axios';
-import swal from "sweetalert";
-import {
-    loginConfirmedAction,
-    Logout,
-} from '../store/actions/AuthActions';
+import swal from 'sweetalert';
+import api from './api';
+import { loginConfirmedAction, Logout } from '../store/actions/AuthActions';
 
-export function signUp(email, password) {
-    //axios call
-    const postData = {
-        email,
-        password,
-        returnSecureToken: true,
-    };
-    return axios.post(
-        `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyD3RPAp3nuETDn9OQimqn_YF6zdzqWITII`,
-        postData,
-    );
+const TOKEN_TTL_SECONDS = 60 * 60 * 8; // 8 hours
+
+export function signUp() {
+  return Promise.reject(new Error('Self-registration is disabled for IRCUB POC.'));
 }
 
 export function login(email, password) {
-    const postData = {
-        email,
-        password,
-        returnSecureToken: true,
+  return api.post('/auth/login', { email, password }).then((response) => {
+    const { token, user } = response.data;
+    return {
+      data: {
+        idToken: token,
+        localId: String(user.id),
+        email: user.email,
+        displayName: user.name,
+        expiresIn: String(TOKEN_TTL_SECONDS),
+        refreshToken: '',
+        user,
+        permissions: user.permissions || [],
+        roles: user.roles || [],
+      },
     };
-    return axios.post(
-        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyD3RPAp3nuETDn9OQimqn_YF6zdzqWITII`,
-        postData,
-    );
+  });
+}
+
+export function fetchMe() {
+  return api.get('/auth/me');
+}
+
+export function logoutRequest() {
+  return api.post('/auth/logout').catch(() => null);
 }
 
 export function formatError(errorResponse) {
-    switch (errorResponse.error.message) {
-        case 'EMAIL_EXISTS':
-            //return 'Email already exists';
-            swal("Oops", "Email already exists", "error");
-            break;
-        case 'EMAIL_NOT_FOUND':
-            //return 'Email not found';
-           swal("Oops", "Email not found", "error",{ button: "Try Again!",});
-           break;
-        case 'INVALID_PASSWORD':
-            //return 'Invalid Password';
-            swal("Oops", "Invalid Password", "error",{ button: "Try Again!",});
-            break;
-        case 'USER_DISABLED':
-            return 'User Disabled';
+  const message =
+    errorResponse?.message ||
+    errorResponse?.errors?.email?.[0] ||
+    errorResponse?.errors?.password?.[0] ||
+    'Login failed. Please check your credentials.';
 
-        default:
-            return '';
-    }
+  swal('Oops', message, 'error', { button: 'Try Again!' });
+  return message;
 }
 
 export function saveTokenInLocalStorage(tokenDetails) {
-    tokenDetails.expireDate = new Date(
-        new Date().getTime() + tokenDetails.expiresIn * 1000,
-    );
-    localStorage.setItem('userDetails', JSON.stringify(tokenDetails));
+  tokenDetails.expireDate = new Date(
+    new Date().getTime() + Number(tokenDetails.expiresIn) * 1000,
+  );
+  localStorage.setItem('userDetails', JSON.stringify(tokenDetails));
 }
 
 export function runLogoutTimer(dispatch, timer, navigate) {
-    setTimeout(() => {
-        //dispatch(Logout(history));
-        dispatch(Logout(navigate));
-    }, timer);
+  setTimeout(() => {
+    dispatch(Logout(navigate));
+  }, timer);
 }
 
 export function checkAutoLogin(dispatch, navigate) {
-    const tokenDetailsString = localStorage.getItem('userDetails');
-    let tokenDetails = '';
-    if (!tokenDetailsString) {
-        dispatch(Logout(navigate));
-		return;
-    }
+  const tokenDetailsString = localStorage.getItem('userDetails');
+  if (!tokenDetailsString) {
+    dispatch(Logout(navigate));
+    return;
+  }
 
-    tokenDetails = JSON.parse(tokenDetailsString);
-    let expireDate = new Date(tokenDetails.expireDate);
-    let todaysDate = new Date();
+  const tokenDetails = JSON.parse(tokenDetailsString);
+  const expireDate = new Date(tokenDetails.expireDate);
+  const todaysDate = new Date();
 
-    if (todaysDate > expireDate) {
-        dispatch(Logout(navigate));
-        return;
-    }
-		
-    dispatch(loginConfirmedAction(tokenDetails));
-	
-    const timer = expireDate.getTime() - todaysDate.getTime();
-    runLogoutTimer(dispatch, timer, navigate);
+  if (todaysDate > expireDate) {
+    dispatch(Logout(navigate));
+    return;
+  }
+
+  dispatch(loginConfirmedAction(tokenDetails));
+
+  const timer = expireDate.getTime() - todaysDate.getTime();
+  runLogoutTimer(dispatch, timer, navigate);
+}
+
+export function hasPermission(permission) {
+  const raw = localStorage.getItem('userDetails');
+  if (!raw) return false;
+  try {
+    const stored = JSON.parse(raw);
+    return Array.isArray(stored.permissions) && stored.permissions.includes(permission);
+  } catch {
+    return false;
+  }
 }

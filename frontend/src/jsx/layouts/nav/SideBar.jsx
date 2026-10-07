@@ -5,11 +5,22 @@ import PerfectScrollbar from "react-perfect-scrollbar";
 import { Link } from "react-router-dom";
 import { Collapse, Dropdown } from "react-bootstrap";
 import { useScrollPosition } from "@n8tb1t/use-scroll-position";
-import { MenuList } from './Menu';
+import { getVisibleMenu } from './Menu';
 import { ThemeContext } from "../../../context/ThemeContext";
 import LogoutPage from './Logout';
 /// Image
 import profile from "../../../assets/images/profile/pic1.jpg";
+
+function readPermissions() {
+  try {
+    const raw = localStorage.getItem('userDetails');
+    if (!raw) return [];
+    const stored = JSON.parse(raw);
+    return Array.isArray(stored.permissions) ? stored.permissions : [];
+  } catch {
+    return [];
+  }
+}
 
 const reducer = (previousState, updatedState) => ({
   ...previousState,
@@ -23,6 +34,8 @@ const initialState = {
 
 const SideBar = () => {
   let year = new Date().getFullYear();
+  const [permissions] = useState(() => readPermissions());
+  const MenuList = getVisibleMenu(permissions);
   const {
     iconHover,
     sidebarposition,

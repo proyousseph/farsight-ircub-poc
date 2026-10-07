@@ -11,10 +11,10 @@ import loginbg from "../../assets/images/bg-login.jpg";
 
 function Login(props) {
   let year = new Date().getFullYear();
-  const [email, setEmail] = useState('demo@example.com');
+  const [email, setEmail] = useState('admin@ircub.test');
   let errorsObj = { email: '', password: '' };
   const [errors, setErrors] = useState(errorsObj);
-  const [password, setPassword] = useState('123456');
+  const [password, setPassword] = useState('Password@123');
 
   const dispatch = useDispatch();
   const nav = useNavigate();
@@ -47,8 +47,8 @@ function Login(props) {
             <img src={logo} alt="" />
           </Link>
           <div className="login-description">
-            <h2 className="main-title mb-2">Welcome To Dompet</h2>
-            <p className="">It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters,</p>
+            <h2 className="main-title mb-2">Welcome To IRCUB</h2>
+            <p className="">Integrated Revenue Collection & Utility Billing Platform — Farsight Africa POC. Sign in with your assigned role account.</p>
             <ul className="social-icons mt-4">
               <li><Link to={"https://www.facebook.com/dexignzone"} target='_blank'><i className="fab fa-facebook-f"></i></Link></li>
               <li><Link to={"https://twitter.com/dexignzones"} target='_blank'><i className="fab fa-twitter"></i></Link></li>
@@ -70,7 +70,7 @@ function Login(props) {
                     <div className="auth-form-1">
                       <div className="mb-4">
                         <h3 className="dz-title mb-1">Sign in</h3>
-                        <p className="">Sign in by entering information below</p>
+                        <p className="">Demo: admin@ircub.test / Password@123</p>
                       </div>
                       {props.errorMessage && (
                         <div className='bg-red-300 text-red-900 border border-red-900 p-1 my-2'>

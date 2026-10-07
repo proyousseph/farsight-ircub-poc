@@ -1,11 +1,11 @@
 import {
-    formatError,
-    login,
-    runLogoutTimer,
-    saveTokenInLocalStorage,
-    signUp,
+  formatError,
+  login,
+  logoutRequest,
+  runLogoutTimer,
+  saveTokenInLocalStorage,
+  signUp,
 } from '../../services/AuthService';
-
 
 export const SIGNUP_CONFIRMED_ACTION = '[signup action] confirmed signup';
 export const SIGNUP_FAILED_ACTION = '[signup action] failed signup';
@@ -15,94 +15,89 @@ export const LOADING_TOGGLE_ACTION = '[Loading action] toggle loading';
 export const LOGOUT_ACTION = '[Logout action] logout action';
 export const NAVTOGGLE = 'NAVTOGGLE';
 
-
-
 export function signupAction(email, password, navigate) {
-	
-    return (dispatch) => {
-        signUp(email, password)
-        .then((response) => {
-            saveTokenInLocalStorage(response.data);
-            runLogoutTimer(
-                dispatch,
-                response.data.expiresIn * 1000,            
-            );
-            dispatch(confirmedSignupAction(response.data));
-            navigate('/dashboard');			
-        })
-        .catch((error) => {
-            const errorMessage = formatError(error.response.data);
-            dispatch(signupFailedAction(errorMessage));
-        });
-    };
+  return (dispatch) => {
+    signUp(email, password)
+      .then((response) => {
+        saveTokenInLocalStorage(response.data);
+        runLogoutTimer(dispatch, response.data.expiresIn * 1000, navigate);
+        dispatch(confirmedSignupAction(response.data));
+        navigate('/dashboard');
+      })
+      .catch((error) => {
+        const errorMessage = formatError(error.response?.data || { message: error.message });
+        dispatch(signupFailedAction(errorMessage));
+      });
+  };
 }
 
 export function Logout(navigate) {
-	localStorage.removeItem('userDetails');
+  logoutRequest();
+  localStorage.removeItem('userDetails');
+  if (navigate) {
     navigate('/login');
-    
-	return {
-        type: LOGOUT_ACTION,
-    };
+  }
+
+  return {
+    type: LOGOUT_ACTION,
+  };
 }
 
 export function loginAction(email, password, navigate) {
-    return (dispatch) => {
-         login(email, password)
-            .then((response) => { 
-                saveTokenInLocalStorage(response.data);
-                runLogoutTimer(
-                    dispatch,
-                    response.data.expiresIn * 1000,
-                    navigate,
-                );
-               dispatch(loginConfirmedAction(response.data));			               
-				navigate('/dashboard');                
-            })
-            .catch((error) => {				
-                const errorMessage = formatError(error.response.data);
-                dispatch(loginFailedAction(errorMessage));
-            });
-    };
+  return (dispatch) => {
+    login(email, password)
+      .then((response) => {
+        saveTokenInLocalStorage(response.data);
+        runLogoutTimer(dispatch, Number(response.data.expiresIn) * 1000, navigate);
+        dispatch(loginConfirmedAction(response.data));
+        navigate('/dashboard');
+      })
+      .catch((error) => {
+        const errorMessage = formatError(
+          error.response?.data || { message: 'Unable to reach IRCUB API.' },
+        );
+        dispatch(loginFailedAction(errorMessage));
+      });
+  };
 }
 
 export function loginFailedAction(data) {
-    return {
-        type: LOGIN_FAILED_ACTION,
-        payload: data,
-    };
+  return {
+    type: LOGIN_FAILED_ACTION,
+    payload: data,
+  };
 }
 
 export function loginConfirmedAction(data) {
-    return {
-        type: LOGIN_CONFIRMED_ACTION,
-        payload: data,
-    };
+  return {
+    type: LOGIN_CONFIRMED_ACTION,
+    payload: data,
+  };
 }
 
 export function confirmedSignupAction(payload) {
-    return {
-        type: SIGNUP_CONFIRMED_ACTION,
-        payload,
-    };
+  return {
+    type: SIGNUP_CONFIRMED_ACTION,
+    payload,
+  };
 }
 
 export function signupFailedAction(message) {
-    return {
-        type: SIGNUP_FAILED_ACTION,
-        payload: message,
-    };
+  return {
+    type: SIGNUP_FAILED_ACTION,
+    payload: message,
+  };
 }
 
 export function loadingToggleAction(status) {
-    return {
-        type: LOADING_TOGGLE_ACTION,
-        payload: status,
-    };
+  return {
+    type: LOADING_TOGGLE_ACTION,
+    payload: status,
+  };
 }
 
 export const navtoggle = () => {
-    return {        
-      type: 'NAVTOGGLE',
-    };
+  return {
+    type: NAVTOGGLE,
+  };
 };
