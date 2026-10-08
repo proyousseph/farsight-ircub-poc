@@ -13,7 +13,8 @@ import {
 } from '../../../services/ChannelService';
 
 const ChannelPaymentsPage = () => {
-  const canCapture = hasPermission('payments.capture');
+  const canCapture = hasPermission('payments.capture') || hasPermission('payments.pay_own');
+  const payOwnOnly = hasPermission('payments.pay_own') && !hasPermission('payments.capture');
   const canRetry = hasPermission('payments.approve_reversal') || hasPermission('payments.capture');
   const canSeeAlerts = hasPermission('payments.approve_reversal') || hasPermission('audit.view');
   const [items, setItems] = useState([]);
@@ -164,9 +165,14 @@ const ChannelPaymentsPage = () => {
                     </select>
                   </div>
                   <div className="mb-3">
-                    <label className="form-label">Assessment (optional)</label>
-                    <select className="form-control" value={form.assessment_id} onChange={(e) => setForm({ ...form, assessment_id: e.target.value })}>
-                      <option value="">None</option>
+                    <label className="form-label">{payOwnOnly ? 'Assessment (required)' : 'Assessment (optional)'}</label>
+                    <select
+                      className="form-control"
+                      value={form.assessment_id}
+                      onChange={(e) => setForm({ ...form, assessment_id: e.target.value })}
+                      required={payOwnOnly}
+                    >
+                      <option value="">{payOwnOnly ? 'Select your assessment' : 'None'}</option>
                       {assessments.filter((a) => !form.payer_id || String(a.payer_id) === String(form.payer_id)).map((a) => (
                         <option key={a.id} value={a.id}>{a.control_number} ({a.revenue_code})</option>
                       ))}
@@ -198,14 +204,16 @@ const ChannelPaymentsPage = () => {
                       </select>
                     </div>
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label">Simulate provider result</label>
-                    <select className="form-control" value={form.simulate} onChange={(e) => setForm({ ...form, simulate: e.target.value })}>
-                      <option value="PENDING">PENDING (needs status/callback)</option>
-                      <option value="SUCCESS">SUCCESS immediately</option>
-                      <option value="FAILED">FAILED</option>
-                    </select>
-                  </div>
+                  {!payOwnOnly && (
+                    <div className="mb-3">
+                      <label className="form-label">Simulate provider result (local only)</label>
+                      <select className="form-control" value={form.simulate} onChange={(e) => setForm({ ...form, simulate: e.target.value })}>
+                        <option value="PENDING">PENDING (needs status/callback)</option>
+                        <option value="SUCCESS">SUCCESS immediately</option>
+                        <option value="FAILED">FAILED</option>
+                      </select>
+                    </div>
+                  )}
                   <button className="btn btn-primary w-100" disabled={saving}>{saving ? 'Initiating...' : 'Step 2: Initiate payment'}</button>
                 </form>
                 <p className="small text-muted mt-3 mb-0">

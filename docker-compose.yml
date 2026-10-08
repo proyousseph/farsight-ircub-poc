@@ -93,9 +93,10 @@ services:
       APP_NAME: ${APP_NAME:-IRCUB}
       APP_ENV: ${APP_ENV:-local}
       # Safer defaults — opt into debug/stub/docs/simulate via Project/.env or docker/.env.app + host env.
+      # APP_KEY + CHANNEL_CALLBACK_SECRET come from env_file (docker/.env.app) only —
+      # do not set empty ${VAR:-} here (that overrides env_file and forces ephemeral secrets).
       APP_DEBUG: ${APP_DEBUG:-false}
       APP_URL: ${APP_URL:-http://localhost:8080}
-      APP_KEY: ${APP_KEY:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
       SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:8080,127.0.0.1:8080}
       SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-false}
@@ -112,7 +113,6 @@ services:
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: redis
-      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-}
       CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-false}
       CHANNEL_ALLOW_MOCK: ${CHANNEL_ALLOW_MOCK:-true}
       FMIS_ALLOW_MOCK: ${FMIS_ALLOW_MOCK:-true}
@@ -123,7 +123,7 @@ services:
       IRCUB_2FA_ALLOW_STUB: ${IRCUB_2FA_ALLOW_STUB:-false}
       IRCUB_DEMO_OTP: ${IRCUB_DEMO_OTP:-}
       IRCUB_DOCS_ENABLED: ${IRCUB_DOCS_ENABLED:-false}
-      IRCUB_SEED_ON_BOOT: ${IRCUB_SEED_ON_BOOT:-true}
+      IRCUB_SEED_ON_BOOT: ${IRCUB_SEED_ON_BOOT:-false}
       IRCUB_RUN_MIGRATIONS: "true"
     depends_on:
       postgres:
@@ -147,7 +147,6 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-local}
       APP_DEBUG: ${APP_DEBUG:-false}
-      APP_KEY: ${APP_KEY:-}
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
@@ -161,7 +160,6 @@ services:
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: redis
-      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-}
       CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-false}
       CHANNEL_ALLOW_MOCK: ${CHANNEL_ALLOW_MOCK:-true}
       FMIS_ALLOW_MOCK: ${FMIS_ALLOW_MOCK:-true}
@@ -186,7 +184,6 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-local}
       APP_DEBUG: ${APP_DEBUG:-false}
-      APP_KEY: ${APP_KEY:-}
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
@@ -200,7 +197,6 @@ services:
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: redis
-      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-}
       CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-false}
       CHANNEL_ALLOW_MOCK: ${CHANNEL_ALLOW_MOCK:-true}
       FMIS_ALLOW_MOCK: ${FMIS_ALLOW_MOCK:-true}

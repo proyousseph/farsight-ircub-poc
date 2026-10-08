@@ -5,46 +5,46 @@
 | | |
 |---|---|
 | Candidate | Yusuf Mohamed Ahmed |
-| Scope | Modules 1–7 (brief allows ~5 working days; work is tracked by **module**, not by calendar day) |
+| Scope | Modules 1–7 (brief allows about five working days; delivery is tracked by **module**) |
 | Repository | https://github.com/proyousseph/farsight-ircub-poc |
 | **Live demo** | **https://ircub.waagefaal.so** |
 
 ---
 
-## Try the demo (2 minutes)
+## Try the demo
 
 1. Open **https://ircub.waagefaal.so**
-2. Sign in with:
+2. Sign in with one of these accounts (password for all: **`Password@123`**):
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@ircub.test` | `Password@123` |
-| Supervisor | `supervisor@ircub.test` | `Password@123` |
-| Officer | `officer@ircub.test` | `Password@123` |
-| Water officer | `water@ircub.test` | `Password@123` |
-| Auditor | `auditor@ircub.test` | `Password@123` |
-| Taxpayer | `taxpayer@ircub.test` | `Password@123` |
+| Role | Email |
+|---|---|
+| Admin | `admin@ircub.test` |
+| Supervisor | `supervisor@ircub.test` |
+| Revenue officer | `officer@ircub.test` |
+| Water officer | `water@ircub.test` |
+| Auditor | `auditor@ircub.test` |
+| Taxpayer | `taxpayer@ircub.test` |
 
-3. You will be asked to **change the password** on first login (required for security).
+3. On first login you **must change the password** (security requirement).
 
-The demo runs on a Contabo VPS with HTTPS. Banks, mobile money, SMS, FX, and FMIS are **simulated** (mock services) for this POC.
+The live site runs on Contabo with HTTPS. Banks, mobile money, SMS, FX rates, and FMIS are **mocked** for this POC — there is no real money movement.
 
 ---
 
 ## What is IRCUB?
 
-A proof-of-concept platform that shows how a government ministry and a water utility can:
+A proof-of-concept for how a ministry of finance and a water utility can work in one system:
 
-- Register taxpayers / customers
-- Raise tax assessments and collect payments
-- Bill water accounts from meter readings
-- Accept multi-channel payments (mock bank / mobile money)
-- Post collections to a mock government FMIS
-- Monitor revenue with an executive dashboard and simple forecast
+- Register taxpayers and customers  
+- Raise tax assessments and collect payments  
+- Bill water from meter readings  
+- Accept multi-channel payments (mock bank / mobile money)  
+- Post collections to a mock government FMIS  
+- Monitor revenue on an executive dashboard (with a simple forecast)  
 
 ---
 
-## What’s included (status)
+## Delivery status
 
 | Area | Status |
 |---|---|
@@ -55,11 +55,9 @@ A proof-of-concept platform that shows how a government ministry and a water uti
 | Module 5 — Payment channels (FX, callback, recon) | Done |
 | Module 6 — FMIS journals & reconciliation | Done & verified |
 | Module 7 — Executive dashboard + OLS forecast | Done & verified |
-| Docs (ERD, OpenAPI, testing) | Done |
+| Docs (ERD, OpenAPI, Postman, testing guide) | Done |
 | Security & performance hardening | Done |
-| Docker (local + Contabo HTTPS) | Done — live at the URL above |
-
-More detail on each module is in the checklists in older commits; the table above is the current delivery status.
+| Docker (local) + Contabo HTTPS demo | Done — **live** |
 
 ---
 
@@ -72,7 +70,7 @@ More detail on each module is in the checklists in older commits; the table abov
 | Database | PostgreSQL 16 |
 | Cache / queues | Redis 7 |
 | Local run | Docker Compose |
-| Hosted demo | Contabo + Nginx TLS (`ircub.waagefaal.so`) |
+| Hosted demo | Contabo VPS · https://ircub.waagefaal.so |
 
 ---
 
@@ -91,106 +89,99 @@ README.md
 
 ---
 
-## Documentation
+## More documentation
 
-| Topic | Where |
+| Topic | File |
 |---|---|
 | Stack notes | [`docs/STACK.md`](docs/STACK.md) |
-| Database ERD | [`docs/ERD.md`](docs/ERD.md) |
+| Database diagram (ERD) | [`docs/ERD.md`](docs/ERD.md) |
 | API / OpenAPI / Postman | [`docs/API.md`](docs/API.md) |
-| How to test | [`docs/TESTING.md`](docs/TESTING.md) |
+| How to run tests | [`docs/TESTING.md`](docs/TESTING.md) |
 | Docker details | [`docker/README.md`](docker/README.md) |
-| Swagger (local only) | http://127.0.0.1:8001/docs/api — turned **off** on Contabo |
+| Swagger (local only) | http://127.0.0.1:8001/docs/api — **off** on Contabo |
 
 ---
 
-## Run locally
+## Run it on your machine
 
-### What you need
+### You need
 
 - Docker Desktop  
-- PHP 8.3+ (with `pdo_pgsql`), Composer  
+- PHP 8.3+ with `pdo_pgsql`, Composer  
 - Node.js 20+ / npm  
 
-### Option A — Fastest full stack (Docker)
+### Option A — Full stack in Docker (simplest)
 
 ```bash
-# From Project/
-docker compose up -d                          # Postgres + Redis
+# From the Project/ folder
+docker compose up -d
 cp docker/.env.app.example docker/.env.app
-# Put a real APP_KEY and CHANNEL_CALLBACK_SECRET (>= 32 characters) in docker/.env.app
+# Edit docker/.env.app: set APP_KEY and a long CHANNEL_CALLBACK_SECRET (32+ characters)
 docker compose --profile app up -d --build
 ```
 
-Then open **http://localhost:8080**
+Open **http://localhost:8080**
 
-| Service | Address |
+| Service | Where |
 |---|---|
 | App (UI + API) | http://localhost:8080 |
-| Postgres (host) | `127.0.0.1:5433` |
-| Redis (host) | `127.0.0.1:6379` |
+| Postgres | `127.0.0.1:5433` |
+| Redis | `127.0.0.1:6379` |
 
-Optional admin UIs:
+Optional tools (pgAdmin / Redis Insight):
 
 ```bash
-docker compose --profile tools up -d   # pgAdmin :5050, Redis Insight :5540
+docker compose --profile tools up -d
 ```
 
-Stop the app stack:
+Stop:
 
 ```bash
 docker compose --profile app down
 ```
 
-### Option B — API + UI on your machine
-
-**1. Database & Redis**
+### Option B — PHP API + Vite frontend
 
 ```bash
+# 1) Database + Redis
 docker compose up -d
-```
 
-**2. Backend**
-
-```bash
+# 2) Backend
 cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate:fresh --seed
 php artisan serve --host=127.0.0.1 --port=8001
-```
 
-**3. Frontend**
-
-```bash
+# 3) Frontend (new terminal)
 cd frontend
 cp .env.example .env
 npm install
 npm run dev
 ```
 
-Open **http://localhost:5173** (prefer `localhost` so the login cookie works with the API host in `.env`).
+Open **http://localhost:5173** (use `localhost` so the login cookie works).
 
-For background jobs (channel retries, FMIS, notifications, dashboard):
+Background jobs (optional but recommended):
 
 ```bash
 php artisan queue:work redis --queue=channels,fmis,notifications,dashboard,default
-php artisan schedule:work   # optional
+php artisan schedule:work
 ```
 
-### Hosted Contabo (already running)
+### Contabo (already deployed)
 
 | | |
 |---|---|
-| URL | https://ircub.waagefaal.so |
-| Server path | `/opt/ircub` |
-| Compose | `docker compose --profile app -f docker-compose.yml -f docker-compose.contabo.yml` |
+| Public URL | https://ircub.waagefaal.so |
+| Code on server | `/opt/ircub` |
+| Start command | `docker compose --profile app -f docker-compose.yml -f docker-compose.contabo.yml up -d --build` |
 | Env template | [`docker/.env.app.contabo.example`](docker/.env.app.contabo.example) |
-| TLS | Let’s Encrypt via existing `ssiwebsite-proxy` |
-| Upload script | [`scripts/deploy_contabo.ps1`](scripts/deploy_contabo.ps1) |
+| HTTPS | Let’s Encrypt via `ssiwebsite-proxy` |
+| Deploy helper | [`scripts/deploy_contabo.ps1`](scripts/deploy_contabo.ps1) |
 
-On Contabo: debug and Swagger are off; seed-on-boot is off; secure cookies are on. Mock payment/FMIS adapters stay enabled so the demo can run without real banks.
+On Contabo: production mode, secure cookies, no Swagger, no seed-on-boot after first setup. Mocks stay on so the demo works without real banks.
 
 ---
 
@@ -198,21 +189,19 @@ On Contabo: debug and Swagger are off; seed-on-boot is off; secure cookies are o
 
 Full guide: [`docs/TESTING.md`](docs/TESTING.md).
 
-**PHPUnit** (no Docker required — uses in-memory SQLite):
-
 ```bash
 cd backend
 composer install
 php artisan test
 ```
 
-| Suite | Last green run |
+| Suite | Latest green run |
 |---|---|
-| All PHPUnit | **46 tests, 197 assertions** |
-| Security + cookie / TOTP | **22 tests, 75 assertions** |
+| All PHPUnit | **50 tests, 214 assertions** |
+| Security + cookie / TOTP | **26 tests, 88 assertions** |
 | Performance | **4 tests, 15 assertions** |
 
-**Smoke scripts** (need Postgres + Redis):
+Module smoke scripts (need Postgres + Redis):
 
 ```bash
 cd backend
@@ -224,7 +213,7 @@ php scripts/verify_gaps.php
 
 Last smoke run: Module 5 **10/10** · Module 6 **13/13** · Module 7 **12/12** · Gaps **6/6**.
 
-**Run everything:**
+Run everything:
 
 ```powershell
 # Windows
@@ -244,81 +233,71 @@ bash scripts/run_all_tests.sh
 
 | Action | Endpoint | Notes |
 |---|---|---|
-| Login | `POST /api/auth/login` | Sets HttpOnly cookie `ircub_token`. Add header `X-IRCUB-Return-Token: 1` if you also need the Bearer token in JSON. |
-| Who am I | `GET /api/auth/me` | Cookie or Bearer |
-| Logout | `POST /api/auth/logout` | Revokes token + clears cookie |
+| Login | `POST /api/auth/login` | Sets HttpOnly cookie `ircub_token`. Add `X-IRCUB-Return-Token: 1` if you also need the Bearer token in JSON. |
+| Current user | `GET /api/auth/me` | Cookie or Bearer |
+| Logout | `POST /api/auth/logout` | Revokes token and clears cookie |
 | Change password | `PUT /api/auth/password` | Clears “must change password” |
-| 2FA | `/api/auth/2fa/*` | Real TOTP; stub OTP only in local/testing |
-
-Example (local cookie login):
-
-```bash
-curl -X POST http://localhost:8001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -c cookies.txt \
-  -d "{\"email\":\"admin@ircub.test\",\"password\":\"Password@123\"}"
-
-curl http://localhost:8001/api/auth/me -b cookies.txt -H "Accept: application/json"
-```
+| Two-factor | `/api/auth/2fa/*` | Real TOTP (authenticator app) |
 
 ---
 
-## FMIS & dashboard (quick API map)
+## Main features (plain language)
 
-**FMIS** (needs `fmis.post` / `fmis.reconcile` — e.g. supervisor):
+**Users & security** — Six roles, permissions, optional TOTP, audit log with tamper-evident hash chain, payment reversals that require a different approver.
 
-- List / create / post / reverse batches under `/api/fmis/batches`
-- Reconciliation: `GET /api/fmis/reconciliation?date=YYYY-MM-DD`
-- UI: **FMIS Journals**
+**Registry** — Payers / customers with duplicate checks and a 360° profile.
 
-**Dashboard** (needs `dashboard.view`):
+**Tax** — Assessments, payments, CSV upload, filters, audit trail.
 
-- Full snapshot: `GET /api/dashboard`
-- Alerts poll: `GET /api/dashboard/alerts`
-- Rebuild aggregates: `POST /api/dashboard/refresh`
-- UI: **Dashboard**
+**Water** — Tariffs, meter readings, monthly bills, PDFs, statements, abnormal-use holds.
+
+**Channels** — Mock FX, bank/mobile initiate + HMAC callback, retries, daily reconciliation.
+
+**FMIS** — GL mapping, daily journals, post/reverse, IRCUB vs FMIS recon.
+
+**Dashboard** — Trends, targets, water efficiency, OLS next-quarter forecast, alerts.
+
+**Taxpayer self-service** — View own data; pay own linked obligations (`payments.pay_own`); cannot capture arbitrary payments.
 
 ---
 
-## Performance (what we did for the POC)
+## Performance (POC)
 
-| Area | Approach |
+| Area | What we did |
 |---|---|
-| Dashboard | Daily aggregates table + short Redis cache |
-| Lists | Pagination capped at 100 rows per page |
-| Database | Indexes on common payment / assessment / audit filters |
-| Background work | Redis queues + scheduler (retries, FMIS batch, dashboard rebuild, bill notify) |
+| Dashboard | Daily aggregates + Redis cache |
+| Lists | Pagination (max 100 per page) |
+| Database | Indexes on common filters |
+| Background work | Redis queues + scheduler |
 | Frontend | Lazy-loaded pages; charts only on the dashboard |
 
 ---
 
 ## Security (plain summary)
 
-- Login uses an **encrypted HttpOnly cookie** (SPA). API tools can opt in to a Bearer token with a special header.
-- Deactivated users and password-change-required users are blocked from business APIs.
-- Taxpayers cannot capture payments; they only see their own data.
-- Channel callbacks use HMAC; successful settlement needs a matching amount.
-- Sensitive fields are redacted in audit / channel responses.
-- Mocks and Swagger stay off (or fail closed) outside local/testing unless you explicitly allow them.
-- Contabo binds databases to localhost and terminates HTTPS at the edge proxy.
+- Encrypted HttpOnly login cookie; optional Bearer token for API tools  
+- Deactivated users and “must change password” are blocked from business APIs  
+- Taxpayers are scoped to their own payer profile  
+- Channel callbacks use HMAC; successful settlement needs a matching amount  
+- Sensitive fields are redacted in audit / channel responses  
+- Audit log entries are hash-chained (tamper-evident)  
+- Mocks and Swagger fail closed / stay off outside local testing unless you allow them  
 
 ---
 
 ## Assumptions & limits
 
-- This is a **POC / sandbox**, not a live payment system.
-- External banks, mobile money, SMS, FX, and FMIS are **mocked**.
-- Channel mocks do not auto-complete as SUCCESS; settlement needs a proper callback (or local simulate when allowed).
-- Dashboard forecast is simple OLS on monthly totals — clear for a demo, not a production forecasting suite.
-- “Near real-time” alerts use short polling, not WebSockets.
-- No real citizen or financial data is used.
+- This is a **POC sandbox**, not a live payment system.  
+- Banks, mobile money, SMS, FX, and FMIS are **mocked**.  
+- Dashboard “near real-time” uses short polling, not WebSockets.  
+- Forecast is simple OLS on monthly totals — clear for a demo, not a production forecasting product.  
+- No real citizen or financial data is used.  
 
 ---
 
 ## AI assistance
 
-AI coding assistants (including Cursor) helped with scaffolding and implementation. The candidate can explain all submitted code. Commits are kept intentional for review.
+AI coding assistants (including Cursor) were used during scaffolding and implementation. The candidate can explain all submitted code. Commits are kept intentional for review.
 
 ---
 

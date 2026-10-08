@@ -78,7 +78,7 @@ const Markup = () => {
     { url: "water-bills", component: <WaterBillsPage />, anyOf: ['bills.view', 'bills.view_own'] },
     { url: "my-bills", component: <WaterBillsPage />, anyOf: ['bills.view', 'bills.view_own'] },
 
-    { url: "channel-payments", component: <ChannelPaymentsPage />, anyOf: ['payments.view', 'payments.capture'] },
+    { url: "channel-payments", component: <ChannelPaymentsPage />, anyOf: ['payments.view', 'payments.view_own', 'payments.capture', 'payments.pay_own'] },
     { url: "reconciliation", component: <ReconciliationPage />, anyOf: ['channels.reconcile', 'fmis.reconcile'] },
 
     { url: "fmis", component: <FmisPage />, anyOf: ['fmis.post', 'fmis.reconcile'] },

@@ -39,9 +39,12 @@ class FmisPostingService
                 throw new \RuntimeException("No unposted SUCCESS payments found for {$date}.");
             }
 
-            // Prevent double-post: skip any payment already linked to a journal line.
+            // Prevent double-post: skip payments with an active (non-reversed) journal line.
             $payments = $payments->reject(function (Payment $payment) {
-                return FmisJournalLine::query()->where('payment_id', $payment->id)->exists();
+                return FmisJournalLine::query()
+                    ->where('payment_id', $payment->id)
+                    ->whereNull('reversed_at')
+                    ->exists();
             })->values();
 
             if ($payments->isEmpty()) {
@@ -103,7 +106,11 @@ class FmisPostingService
             if ($payment && $payment->fmis_status === 'POSTED' && $payment->fmis_journal_line_id && (int) $payment->fmis_journal_line_id !== (int) $line->id) {
                 throw new \RuntimeException("Payment #{$payment->id} was already posted to FMIS.");
             }
-            if (FmisJournalLine::query()->where('payment_id', $line->payment_id)->where('id', '!=', $line->id)->exists()) {
+            if (FmisJournalLine::query()
+                ->where('payment_id', $line->payment_id)
+                ->whereNull('reversed_at')
+                ->where('id', '!=', $line->id)
+                ->exists()) {
                 throw new \RuntimeException("Payment #{$line->payment_id} already exists on another journal line.");
             }
         }
@@ -194,29 +201,36 @@ class FmisPostingService
                         'fmis_journal_line_id' => null,
                     ]);
                 }
-                // Keep line for audit trail but free payment unique for re-post by deleting line uniqueness via soft approach:
-                // Actually unique on payment_id blocks re-create. Delete lines after marking payments pending,
-                // or change unique. We'll delete lines and mark batch reversed, payments become eligible again.
-            }
 
-            // Keep line rows for audit, but free payment_id unique so payments can be re-posted.
-            // Detach by deleting lines after resetting payments (unique is on payment_id).
-            FmisJournalLine::query()->where('fmis_journal_batch_id', $batch->id)->delete();
+                // Keep payment_id for traceability; mark reversed so active unique / re-post checks ignore it.
+                $line->source_payment_id = $line->payment_id ?? $line->source_payment_id;
+                $line->reversed_at = now();
+                $line->save();
+            }
 
             $batch->status = 'REVERSED';
             $batch->reversed_at = now();
-            $batch->line_count = 0;
             $batch->save();
 
             try {
                 $this->fmis->reverseJournal($batch->batch_number, $batch->journal_date->toDateString());
             } catch (\Throwable $e) {
-                // Mock reverse is best-effort; IRCUB state is already reversed.
+                $batch->status = 'FAILED';
+                $batch->save();
+                AuditLog::record(
+                    'FmisJournalBatch',
+                    $batch->id,
+                    'REVERSE_FAILED',
+                    $before,
+                    array_merge($batch->toArray(), ['error' => $e->getMessage()]),
+                    $userId
+                );
+                throw new \RuntimeException('FMIS reverse failed: '.$e->getMessage(), 0, $e);
             }
 
-            AuditLog::record('FmisJournalBatch', $batch->id, 'REVERSED', $before, $batch->toArray(), $userId);
+            AuditLog::record('FmisJournalBatch', $batch->id, 'REVERSED', $before, $batch->fresh()->toArray(), $userId);
 
-            return $batch->fresh('creator:id,name');
+            return $batch->fresh(['lines', 'creator:id,name']);
         });
     }
 

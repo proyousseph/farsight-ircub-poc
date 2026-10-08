@@ -12,6 +12,15 @@ class StorePayerRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('tin')) {
+            $this->merge([
+                'tin' => strtoupper(trim((string) $this->input('tin'))),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [

@@ -61,6 +61,16 @@ class FmisApiTest extends TestCase
         $this->postJson("/api/fmis/batches/{$batchId}/reverse")
             ->assertOk()
             ->assertJsonPath('batch.status', 'REVERSED');
+
+        $lines = \App\Models\FmisJournalLine::query()
+            ->where('fmis_journal_batch_id', $batchId)
+            ->get();
+        $this->assertNotEmpty($lines);
+        foreach ($lines as $line) {
+            $this->assertNotNull($line->payment_id);
+            $this->assertSame((int) $line->payment_id, (int) $line->source_payment_id);
+            $this->assertNotNull($line->reversed_at);
+        }
     }
 
     public function test_gl_mappings_list(): void

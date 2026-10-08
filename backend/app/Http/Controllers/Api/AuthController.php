@@ -122,6 +122,27 @@ class AuthController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+
+        // Re-setup while 2FA is already active must prove password (+ OTP if confirmed).
+        if ($user->two_factor_enabled || $user->two_factor_confirmed_at) {
+            $data = $request->validate([
+                'password' => ['required', 'string'],
+                'otp' => ['nullable', 'string', 'max:12'],
+            ]);
+            if (! Hash::check($data['password'], $user->password)) {
+                throw ValidationException::withMessages([
+                    'password' => ['Password is incorrect.'],
+                ]);
+            }
+            if ($user->two_factor_secret && $user->two_factor_confirmed_at) {
+                if (empty($data['otp']) || ! Totp::verify($user->two_factor_secret, $data['otp'])) {
+                    throw ValidationException::withMessages([
+                        'otp' => ['Invalid authenticator code.'],
+                    ]);
+                }
+            }
+        }
+
         $secret = Totp::generateSecret();
         $user->two_factor_secret = $secret;
         $user->two_factor_confirmed_at = null;

@@ -59,12 +59,15 @@ class PaymentController extends Controller
             'water_bill_id' => ['nullable', 'exists:water_bills,id'],
             'revenue_code' => ['required', 'string', Rule::exists('revenue_types', 'revenue_code')->where('is_active', true)],
             'amount' => ['required', 'numeric', 'min:0.01'],
-            'currency' => ['nullable', 'string', 'max:10'],
+            // Manual/cash capture posts in USD only — use channel payments for FX conversion.
+            'currency' => ['nullable', 'string', 'size:3', 'in:USD,usd'],
             'channel' => ['required', Rule::in(['BANK', 'MOBILE_MONEY', 'CASH'])],
             'external_ref' => ['required', 'string', 'max:100', 'unique:payments,external_ref'],
             'paid_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
         ]);
+
+        $data['currency'] = 'USD';
 
         if (! OwnsPayerScope::canAccessPayer($request->user(), (int) $data['payer_id'], 'payments.view', 'payments.view_own')) {
             return response()->json(['message' => 'You do not have access to capture payments for this payer.'], 403);
@@ -112,7 +115,7 @@ class PaymentController extends Controller
                 'water_bill_id' => $data['water_bill_id'] ?? null,
                 'revenue_code' => strtoupper($data['revenue_code']),
                 'amount' => $data['amount'],
-                'currency' => $data['currency'] ?? 'USD',
+                'currency' => 'USD',
                 'channel' => $data['channel'],
                 'external_ref' => $data['external_ref'],
                 'paid_at' => $data['paid_at'] ?? now(),
@@ -232,7 +235,7 @@ class PaymentController extends Controller
                 'channel' => ['required', Rule::in(['BANK', 'MOBILE_MONEY', 'CASH'])],
                 'external_ref' => ['required', 'string', 'max:100'],
                 'control_number' => ['nullable', 'string'],
-                'currency' => ['nullable', 'string', 'max:10'],
+                'currency' => ['nullable', 'string', 'size:3'],
                 'paid_at' => ['nullable', 'date'],
             ]);
 
@@ -241,6 +244,16 @@ class PaymentController extends Controller
                     'row' => $rowNumber,
                     'reason' => $validator->errors()->first(),
                     'data' => ['payer_tin' => $data['payer_tin'] ?? null, 'external_ref' => $data['external_ref'] ?? null],
+                ];
+                continue;
+            }
+
+            $currency = strtoupper((string) ($data['currency'] ?: 'USD'));
+            if ($currency !== 'USD') {
+                $rejected[] = [
+                    'row' => $rowNumber,
+                    'reason' => 'Manual/CSV capture must be USD. Use channel payments for FX.',
+                    'data' => ['external_ref' => $data['external_ref'] ?? null],
                 ];
                 continue;
             }
@@ -308,7 +321,7 @@ class PaymentController extends Controller
                         'assessment_id' => $assessment?->id,
                         'revenue_code' => strtoupper($data['revenue_code']),
                         'amount' => $data['amount'],
-                        'currency' => $data['currency'] ?? 'USD',
+                        'currency' => 'USD',
                         'channel' => $data['channel'],
                         'external_ref' => $data['external_ref'],
                         'paid_at' => $data['paid_at'] ?? now(),

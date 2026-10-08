@@ -29,7 +29,8 @@ export const MenuList = [
     title: 'Payments',
     iconStyle: <i className="flaticon-381-diamond"></i>,
     classsChange: 'mm-collapse',
-    permission: 'payments.view',
+    // Parent visible if any child permission matches (see getVisibleMenu).
+    permissionAnyOf: ['payments.view', 'payments.view_own', 'payments.pay_own', 'payments.capture'],
     content: [
       {
         title: 'Cash / Manual',
@@ -39,7 +40,7 @@ export const MenuList = [
       {
         title: 'Channel Payments',
         to: 'channel-payments',
-        permission: 'payments.view',
+        permissionAnyOf: ['payments.view', 'payments.view_own', 'payments.pay_own', 'payments.capture'],
       },
     ],
   },
@@ -136,6 +137,12 @@ export const MenuList = [
 
 export function getVisibleMenu(permissions = []) {
   const can = (permission) => !permission || permissions.includes(permission);
+  const canAny = (item) => {
+    if (item.permissionAnyOf?.length) {
+      return item.permissionAnyOf.some((p) => permissions.includes(p));
+    }
+    return can(item.permission);
+  };
 
   return MenuList
     .map((item) => {
@@ -144,14 +151,14 @@ export function getVisibleMenu(permissions = []) {
       }
 
       if (item.content?.length) {
-        const content = item.content.filter((child) => can(child.permission));
-        if (!content.length || !can(item.permission)) {
+        const content = item.content.filter((child) => canAny(child));
+        if (!content.length || !canAny(item)) {
           return null;
         }
         return { ...item, content };
       }
 
-      return can(item.permission) ? item : null;
+      return canAny(item) ? item : null;
     })
     .filter(Boolean)
     .filter((item, index, list) => {

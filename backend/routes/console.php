@@ -24,7 +24,11 @@ Schedule::job(new ProcessChannelRetriesJob)
     ->name('ircub-channel-retries')
     ->withoutOverlapping();
 
-Schedule::job(new CreateDailyFmisBatchJob(postImmediately: true))
+// Batch the previous calendar day (UTC) so daytime payments are included.
+Schedule::job(new CreateDailyFmisBatchJob(
+    journalDate: now()->subDay()->toDateString(),
+    postImmediately: true,
+))
     ->dailyAt('01:15')
     ->name('ircub-fmis-daily-batch')
     ->withoutOverlapping();

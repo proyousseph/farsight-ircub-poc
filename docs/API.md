@@ -41,15 +41,21 @@ Also:
 - Channel audit writes strip provider blobs; list/read paths also redact secrets
 - Payer **list** never returns `national_id` / `notes` (use show with `payers.view`)
 - Unlinked payments capped by `IRCUB_MAX_UNLINKED_PAYMENT` (USD after FX for channel initiate)
-- SUCCESS settlement (HMAC callback **or** provider status-check) must include `amount` matching the initiated USD amount
-- Mock provider status checks do not auto-flip PENDING → SUCCESS
+- Manual/CSV cash capture is **USD only** (use channel payments for SOS/FX)
+- Taxpayer `payments.pay_own`: initiate channel payment for own linked assessment/bill only
+- SUCCESS channel callbacks must include `amount` matching the initiated USD amount
 - Mock channel/FMIS adapters require `CHANNEL_ALLOW_MOCK` / `FMIS_ALLOW_MOCK` (default on only in local/testing)
 - Admin clearing another user’s 2FA requires `admin_password` (actor password)
+- Re-running `POST /api/auth/2fa/setup` while 2FA is active requires password (+ OTP if confirmed)
 - Channel payment list/show respect `payments.view` / `payments.view_own` (OwnsPayerScope)
+- Audit log rows form a SHA-256 hash chain (`prev_hash` / `entry_hash`) and redact secrets on write
+- TIN is normalized to uppercase before unique validation
 - API error bodies use `SafeHttpError` (domain `InvalidArgumentException` only when `APP_DEBUG=false`)
+- Daily FMIS schedule posts the **previous** calendar day at 01:15; reverse keeps journal lines (`reversed_at` + `source_payment_id`, payment link retained)
 
 ### Import into Postman
 
 1. Postman → **Import** → select `docs/postman/IRCUB.postman_collection.json`
 2. Or import `docs/openapi.yaml` directly.
 3. Run **Auth / Login** with header `X-IRCUB-Return-Token: 1` so the test script can store `token`.
+4. Run **Auth / Change password** before business calls when `must_change_password` is set (seeded users outside `testing`).

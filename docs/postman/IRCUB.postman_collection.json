@@ -35,13 +35,29 @@
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-IRCUB-Return-Token", "value": "1" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"admin@ircub.test\",\n  \"password\": \"Password@123\"\n}"
             },
             "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Password@123\",\n  \"password\": \"Password@1234\",\n  \"password_confirmation\": \"Password@1234\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/password"
           }
         },
         {

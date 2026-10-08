@@ -41,9 +41,9 @@ Containers: `ircub-api`, `ircub-queue`, `ircub-scheduler`, `ircub-web`, `ircub-p
 
 | Variable | Purpose |
 |---|---|
-| `APP_KEY` | **Required for stable cookies** — entrypoint generates ephemeral key if missing |
+| `APP_KEY` | **Required for stable cookies** — set in `docker/.env.app` only (compose does **not** override with empty `${APP_KEY:-}`) |
 | `APP_DEBUG` | Compose default **false** |
-| `CHANNEL_CALLBACK_SECRET` | HMAC ≥32 chars; entrypoint generates ephemeral if missing/insecure |
+| `CHANNEL_CALLBACK_SECRET` | HMAC ≥32 chars in `docker/.env.app`; entrypoint generates ephemeral if missing/insecure |
 | `CHANNEL_ALLOW_SIMULATE` | Compose default **false** (also forced off when `APP_ENV` ∉ local/testing) |
 | `CHANNEL_ALLOW_MOCK` / `FMIS_ALLOW_MOCK` | In-process mocks — **false** on Contabo |
 | `IRCUB_AUTH_COOKIE_SAMESITE` | Cookie SameSite (`lax` default) |
@@ -57,7 +57,7 @@ Containers: `ircub-api`, `ircub-queue`, `ircub-scheduler`, `ircub-web`, `ircub-p
 
 Lab opt-in (set in **Project/.env** so compose `${}` picks them up): `APP_DEBUG=true`, `CHANNEL_ALLOW_SIMULATE=true`, `IRCUB_2FA_ALLOW_STUB=true`, `IRCUB_DOCS_ENABLED=true`.
 
-**Contabo / staging checklist:** `APP_ENV=production`, `APP_DEBUG=false`, `CHANNEL_ALLOW_SIMULATE=false`, `IRCUB_2FA_ALLOW_STUB=false`, `IRCUB_DOCS_ENABLED=false`, `IRCUB_SEED_ON_BOOT=false`, strong `CHANNEL_CALLBACK_SECRET` + `APP_KEY`, `SESSION_SECURE_COOKIE=true`. Take-home Contabo may keep `CHANNEL_ALLOW_MOCK`/`FMIS_ALLOW_MOCK=true` (mock rails; no auto-SUCCESS — settle via HMAC callback). For a real PSP, set both mock flags **false**.
+**Contabo / staging checklist:** `APP_ENV=production`, `APP_DEBUG=false`, `CHANNEL_ALLOW_SIMULATE=false`, `IRCUB_SEED_ON_BOOT=false` (never leave seed-on-boot on after first demo users), `IRCUB_2FA_ALLOW_STUB=false`, `IRCUB_DOCS_ENABLED=false`, strong unique `CHANNEL_CALLBACK_SECRET` + `APP_KEY` in `docker/.env.app` (not empty host overrides), `SESSION_SECURE_COOKIE=true`, `TRUSTED_PROXIES` set for the edge proxy. POC demo may keep `CHANNEL_ALLOW_MOCK=true` / `FMIS_ALLOW_MOCK=true`; turn them **false** when leaving take-home mock mode.
 
 ### Nginx (`web`)
 
@@ -110,7 +110,7 @@ docker/
 
 ## Tests
 
-Automated tests run on the **host** (see [`docs/TESTING.md`](../docs/TESTING.md)). Last green: **44 / 192** PHPUnit · security **20 / 70** · performance **4 / 15**.
+Automated tests run on the **host** (see [`docs/TESTING.md`](../docs/TESTING.md)). Last green: **50 / 214** PHPUnit · security **26 / 88** · performance **4 / 15**.
 
 ```bash
 cd backend

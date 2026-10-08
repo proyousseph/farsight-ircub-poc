@@ -84,12 +84,30 @@ class ChannelPaymentController extends Controller
 
         $data = $request->validate($rules);
 
-        if (! OwnsPayerScope::canAccessPayer($request->user(), (int) $data['payer_id'], 'payments.view', 'payments.view_own')) {
-            return response()->json(['message' => 'You do not have access to initiate payments for this payer.'], 403);
+        $user = $request->user();
+        $canCapture = $user?->hasPermission('payments.capture');
+        $canPayOwn = $user?->hasPermission('payments.pay_own');
+
+        if (! OwnsPayerScope::canAccessPayer($user, (int) $data['payer_id'], 'payments.view', 'payments.view_own')) {
+            // pay_own alone: must target the linked payer profile.
+            if (! ($canPayOwn && $user?->payer_id && (int) $user->payer_id === (int) $data['payer_id'])) {
+                return response()->json(['message' => 'You do not have access to initiate payments for this payer.'], 403);
+            }
+        }
+
+        if (! $canCapture && $canPayOwn) {
+            if (empty($data['assessment_id']) && empty($data['water_bill_id'])) {
+                return response()->json([
+                    'message' => 'Self-service payments must be linked to your assessment or water bill.',
+                ], 422);
+            }
+            if ((int) ($user->payer_id ?? 0) !== (int) $data['payer_id']) {
+                return response()->json(['message' => 'You can only pay obligations for your linked payer profile.'], 403);
+            }
         }
 
         try {
-            $payment = $this->channels->initiate($data, $request->user()?->id);
+            $payment = $this->channels->initiate($data, $user?->id);
         } catch (\Throwable $e) {
             return response()->json([
                 'message' => \App\Support\SafeHttpError::message($e, 'Unable to initiate channel payment.'),
@@ -129,15 +147,6 @@ class ChannelPaymentController extends Controller
 
     public function check(Request $request, ChannelPayment $channelPayment): JsonResponse
     {
-        if (! OwnsPayerScope::canAccessPayer(
-            $request->user(),
-            (int) $channelPayment->payer_id,
-            'payments.view',
-            'payments.view_own'
-        )) {
-            return response()->json(['message' => 'You do not have access to check this channel payment.'], 403);
-        }
-
         try {
             $payment = $this->channels->checkStatus($channelPayment, $request->user()?->id);
         } catch (\Throwable $e) {

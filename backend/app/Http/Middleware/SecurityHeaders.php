@@ -12,11 +12,6 @@ class SecurityHeaders
     {
         $response = $next($request);
 
-        $response->headers->remove('X-Powered-By');
-        if (function_exists('header_remove')) {
-            header_remove('X-Powered-By');
-        }
-
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('Referrer-Policy', 'no-referrer');

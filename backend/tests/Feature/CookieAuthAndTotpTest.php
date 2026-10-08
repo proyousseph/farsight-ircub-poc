@@ -105,5 +105,31 @@ class CookieAuthAndTotpTest extends TestCase
         $this->assertFalse(
             $role->permissions()->where('permissions.id', $captureId)->exists()
         );
+
+        $payOwnId = Permission::query()->where('slug', 'payments.pay_own')->value('id');
+        $this->assertNotNull($payOwnId);
+        $this->assertTrue(
+            $role->permissions()->where('permissions.id', $payOwnId)->exists()
+        );
+    }
+
+    public function test_active_2fa_setup_requires_password_and_otp(): void
+    {
+        $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();
+        Sanctum::actingAs($officer);
+
+        $setup = $this->postJson('/api/auth/2fa/setup')->assertOk();
+        $secret = $setup->json('secret');
+        $code = Totp::currentCode($secret);
+        $this->postJson('/api/auth/2fa/confirm', ['otp' => $code])->assertOk();
+
+        $this->postJson('/api/auth/2fa/setup')->assertStatus(422);
+
+        $officer->refresh();
+        $otp = Totp::currentCode($officer->two_factor_secret);
+        $this->postJson('/api/auth/2fa/setup', [
+            'password' => 'Password@123',
+            'otp' => $otp,
+        ])->assertOk();
     }
 }

@@ -55,8 +55,8 @@ Relevant test env flags (`phpunit.xml`):
 
 | Suite | Result |
 |---|---|
-| Full PHPUnit | **46 tests, 197 assertions** — passed |
-| Security + cookie/TOTP | **22 tests, 75 assertions** — passed |
+| Full PHPUnit | **50 tests, 214 assertions** — passed |
+| Security + cookie/TOTP | **26 tests, 88 assertions** — passed (USD-only, TIN normalize, pay_own, callback amount, audit hash chain, 2FA) |
 | Performance | **4 tests, 15 assertions** — passed |
 | Smokes | Module 5 10/10 · Module 6 13/13 · Module 7 12/12 · Gaps 6/6 |
 
@@ -75,21 +75,23 @@ What those suites prove:
 | HttpOnly `ircub_token` + cookie-only `/me` | `CookieAuthAndTotpTest` |
 | TOTP setup / confirm / login | `CookieAuthAndTotpTest`, `TotpTest` |
 | Security headers (CSP, nosniff, frame deny) | `CookieAuthAndTotpTest` |
-| Taxpayer cannot capture payments | `SecurityHardeningTest` |
+| Taxpayer cannot cash-capture; can `pay_own` channel | `SecurityHardeningTest`, `CookieAuthAndTotpTest` |
 | Deactivated user tokens rejected | `SecurityHardeningTest` |
 | Role change revokes tokens | `SecurityHardeningTest` |
 | Unlinked payment amount cap | `SecurityHardeningTest` |
-| Audit log redacts sensitive keys | `SecurityHardeningTest` |
+| Manual capture USD-only | `SecurityHardeningTest` |
+| TIN normalize / case-duplicate | `SecurityHardeningTest` |
+| Audit log redacts + hash chain | `SecurityHardeningTest` |
 | Channel list strips provider payloads | `SecurityHardeningTest` |
-| SUCCESS callback requires amount | `SecurityHardeningTest` |
+| SUCCESS callback requires matching amount | `SecurityHardeningTest` |
 | Payer list omits national_id | `SecurityHardeningTest` |
 | Admin 2FA clear needs admin_password | `SecurityHardeningTest` |
-| Channel payment own-scope (show + check) | `SecurityHardeningTest` |
-| Status-check SUCCESS requires amount | `SecurityHardeningTest` |
-| Mock status does not auto-SUCCESS | `verify_module5.php` (STATUS_STAYS_PENDING) |
+| Active 2FA re-setup needs password+OTP | `CookieAuthAndTotpTest` |
+| Channel payment own-scope | `SecurityHardeningTest` |
 | Water bill PDF owner scope | `SecurityHardeningTest` |
 | Callback rejects empty identifiers | `SecurityHardeningTest` |
 | Must-change-password gate | `SecurityHardeningTest` |
+| FMIS reverse keeps journal lines | `FmisApiTest` |
 | SoD reversal request ≠ approve | `GapPolishTest` / `verify_gaps.php` |
 
 HTTP smoke (API running on `:8001` or Docker `:8080`):
@@ -105,7 +107,9 @@ HTTP smoke (API running on `:8001` or Docker `:8080`):
 docker compose up -d                              # Postgres + Redis
 docker compose --profile tools up -d              # optional pgAdmin + Redis Insight
 cp docker/.env.app.example docker/.env.app
-# set APP_KEY + CHANNEL_CALLBACK_SECRET
+# Paste real APP_KEY + CHANNEL_CALLBACK_SECRET (>=32 chars) into docker/.env.app
+# Do NOT put empty APP_KEY= in Project/.env — compose no longer overrides env_file with empty ${APP_KEY:-}
+# Local Swagger: IRCUB_DOCS_ENABLED=true in docker/.env.app
 docker compose --profile app up -d --build        # API + queue + scheduler + web :8080
 ```
 

@@ -50,19 +50,8 @@ $pending = $service->initiate([
 ok('INITIATE_PENDING', $pending->status === 'PENDING' && (float) $pending->fx_rate > 0, 'status='.$pending->status.' local='.$pending->amount_local);
 
 $c1 = $service->checkStatus($pending->fresh(), $officer->id);
-ok('STATUS_STAYS_PENDING', $c1->status === 'PENDING', 'status='.$c1->status.' (mock no longer auto-SUCCESS)');
-
-$settlePayload = [
-    'provider_txn_id' => $pending->provider_txn_id,
-    'external_ref' => $pending->external_ref,
-    'status' => 'SUCCESS',
-    'amount' => (float) $pending->amount_usd,
-    'timestamp' => time(),
-];
-$settleRaw = json_encode($settlePayload, JSON_UNESCAPED_SLASHES);
-$settleSig = hash_hmac('sha256', $settleRaw, config('channels.callback_secret'));
-$settled = $service->handleCallback($settlePayload, $settleSig, $settleRaw);
-ok('CALLBACK_SETTLES_SUCCESS', $settled->status === 'SUCCESS' && $settled->payment_id, 'status='.$settled->status.' payment_id='.$settled->payment_id);
+$c2 = $service->checkStatus($c1->fresh(), $officer->id);
+ok('STATUS_TO_SUCCESS', $c2->status === 'SUCCESS' && $c2->payment_id, 'status='.$c2->status.' payment_id='.$c2->payment_id);
 
 $sos = $service->initiate([
     'payer_id' => $payer->id,
