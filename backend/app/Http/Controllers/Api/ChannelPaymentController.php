@@ -37,7 +37,11 @@ class ChannelPaymentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $items = ChannelPayment::query()
-            ->with(['payer:id,tin,full_name', 'payment:id,external_ref,status', 'creator:id,name'])
+            ->with(['payer:id,tin,full_name', 'payment:id,external_ref,status', 'creator:id,name']);
+
+        OwnsPayerScope::apply($items, $request->user(), 'payments.view', 'payments.view_own');
+
+        $items = $items
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = '%'.$request->string('q').'%';
                 $q->where(function ($builder) use ($term) {
@@ -88,7 +92,7 @@ class ChannelPaymentController extends Controller
             $payment = $this->channels->initiate($data, $request->user()?->id);
         } catch (\Throwable $e) {
             return response()->json([
-                'message' => config('app.debug') ? $e->getMessage() : 'Unable to initiate channel payment.',
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to initiate channel payment.'),
             ], 422);
         }
 
@@ -98,8 +102,17 @@ class ChannelPaymentController extends Controller
         ], 201);
     }
 
-    public function show(ChannelPayment $channelPayment): JsonResponse
+    public function show(Request $request, ChannelPayment $channelPayment): JsonResponse
     {
+        if (! OwnsPayerScope::canAccessPayer(
+            $request->user(),
+            (int) $channelPayment->payer_id,
+            'payments.view',
+            'payments.view_own'
+        )) {
+            return response()->json(['message' => 'You do not have access to this channel payment.'], 403);
+        }
+
         $channelPayment->load([
             'payer:id,tin,full_name',
             'assessment:id,control_number,status,payer_id',
@@ -120,7 +133,7 @@ class ChannelPaymentController extends Controller
             $payment = $this->channels->checkStatus($channelPayment, $request->user()?->id);
         } catch (\Throwable $e) {
             return response()->json([
-                'message' => config('app.debug') ? $e->getMessage() : 'Unable to check channel payment status.',
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to check channel payment status.'),
             ], 422);
         }
 

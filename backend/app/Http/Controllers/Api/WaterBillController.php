@@ -80,7 +80,9 @@ class WaterBillController extends Controller
         try {
             $bill = $this->billing->releaseBill($waterBill, $request->user()?->id);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to release water bill.'),
+            ], 422);
         }
 
         return response()->json([

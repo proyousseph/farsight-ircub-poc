@@ -12,10 +12,11 @@ services:
     environment:
       POSTGRES_DB: ircub
       POSTGRES_USER: ircub
-      POSTGRES_PASSWORD: ircub_secret
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ircub_secret}
     ports:
-      # Host 5433 avoids conflict with a local PostgreSQL on 5432
-      - "5433:5432"
+      # Bind localhost only — not reachable from other LAN/WAN hosts.
+      # Host 5433 avoids conflict with a local PostgreSQL on 5432.
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -28,12 +29,13 @@ services:
     image: redis:7-alpine
     container_name: ircub-redis
     restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-ircub_redis_local}"]
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "ircub_redis_local", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,7 +52,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-change-me-pgadmin}
       PGADMIN_CONFIG_SERVER_MODE: "False"
     ports:
-      - "5050:80"
+      - "127.0.0.1:5050:80"
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,7 +65,7 @@ services:
     container_name: ircub-redis-insight
     restart: unless-stopped
     ports:
-      - "5540:5540"
+      - "127.0.0.1:5540:5540"
     depends_on:
       redis:
         condition: service_healthy
@@ -88,7 +90,8 @@ services:
     environment:
       APP_NAME: ${APP_NAME:-IRCUB}
       APP_ENV: ${APP_ENV:-local}
-      APP_DEBUG: ${APP_DEBUG:-true}
+      # Safer defaults — opt into debug/stub/docs/simulate via Project/.env or docker/.env.app + host env.
+      APP_DEBUG: ${APP_DEBUG:-false}
       APP_URL: ${APP_URL:-http://localhost:8080}
       APP_KEY: ${APP_KEY:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
@@ -99,24 +102,25 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ircub
       DB_USERNAME: ircub
-      DB_PASSWORD: ircub_secret
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ircub_secret}
       REDIS_CLIENT: predis
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-ircub_redis_local}
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: redis
       CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-}
-      CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-true}
+      CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-false}
       CHANNEL_ALLOW_MOCK: ${CHANNEL_ALLOW_MOCK:-true}
       FMIS_ALLOW_MOCK: ${FMIS_ALLOW_MOCK:-true}
       CHANNEL_MOCK_BASE_URL: http://api:8000/mock-api
       IRCUB_AUTH_COOKIE_SAMESITE: ${IRCUB_AUTH_COOKIE_SAMESITE:-lax}
       IRCUB_MAX_UNLINKED_PAYMENT: ${IRCUB_MAX_UNLINKED_PAYMENT:-100000}
       IRCUB_2FA_ENABLED: ${IRCUB_2FA_ENABLED:-true}
-      IRCUB_2FA_ALLOW_STUB: ${IRCUB_2FA_ALLOW_STUB:-true}
-      IRCUB_DEMO_OTP: ${IRCUB_DEMO_OTP:-123456}
-      IRCUB_DOCS_ENABLED: ${IRCUB_DOCS_ENABLED:-true}
+      IRCUB_2FA_ALLOW_STUB: ${IRCUB_2FA_ALLOW_STUB:-false}
+      IRCUB_DEMO_OTP: ${IRCUB_DEMO_OTP:-}
+      IRCUB_DOCS_ENABLED: ${IRCUB_DOCS_ENABLED:-false}
       IRCUB_SEED_ON_BOOT: ${IRCUB_SEED_ON_BOOT:-true}
       IRCUB_RUN_MIGRATIONS: "true"
     depends_on:
@@ -140,22 +144,23 @@ services:
         required: false
     environment:
       APP_ENV: ${APP_ENV:-local}
-      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_DEBUG: ${APP_DEBUG:-false}
       APP_KEY: ${APP_KEY:-}
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
       DB_DATABASE: ircub
       DB_USERNAME: ircub
-      DB_PASSWORD: ircub_secret
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ircub_secret}
       REDIS_CLIENT: predis
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-ircub_redis_local}
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: redis
       CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-}
-      CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-true}
+      CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-false}
       CHANNEL_ALLOW_MOCK: ${CHANNEL_ALLOW_MOCK:-true}
       FMIS_ALLOW_MOCK: ${FMIS_ALLOW_MOCK:-true}
       CHANNEL_MOCK_BASE_URL: http://api:8000/mock-api
@@ -178,22 +183,23 @@ services:
         required: false
     environment:
       APP_ENV: ${APP_ENV:-local}
-      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_DEBUG: ${APP_DEBUG:-false}
       APP_KEY: ${APP_KEY:-}
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
       DB_DATABASE: ircub
       DB_USERNAME: ircub
-      DB_PASSWORD: ircub_secret
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ircub_secret}
       REDIS_CLIENT: predis
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-ircub_redis_local}
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: redis
       CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-}
-      CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-true}
+      CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-false}
       CHANNEL_ALLOW_MOCK: ${CHANNEL_ALLOW_MOCK:-true}
       FMIS_ALLOW_MOCK: ${FMIS_ALLOW_MOCK:-true}
       CHANNEL_MOCK_BASE_URL: http://api:8000/mock-api
@@ -214,7 +220,8 @@ services:
     container_name: ircub-web
     restart: unless-stopped
     ports:
-      - "8080:80"
+      # Localhost only — set IRCUB_WEB_BIND=0.0.0.0 to expose on LAN (not recommended).
+      - "${IRCUB_WEB_BIND:-127.0.0.1}:8080:80"
     depends_on:
       - api
 

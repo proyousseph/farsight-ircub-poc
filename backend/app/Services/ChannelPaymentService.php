@@ -489,7 +489,9 @@ class ChannelPaymentService
         $insecure = config('channels.insecure_callback_secrets', []);
         $isInsecure = in_array($secret, $insecure, true) || strlen($secret) < 32;
 
-        if ($isInsecure && ! app()->environment(['local', 'testing'])) {
+        // Testing may use the mock secret. Local/staging/production require a strong secret
+        // (Docker entrypoint generates one when CHANNEL_CALLBACK_SECRET is empty).
+        if ($isInsecure && ! app()->environment('testing')) {
             throw new \RuntimeException('Channel callback secret is not configured securely.');
         }
 

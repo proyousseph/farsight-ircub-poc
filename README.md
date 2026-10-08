@@ -281,8 +281,8 @@ php artisan test --filter=PerformanceHardeningTest
 
 | Suite | Last green |
 |---|---|
-| Full PHPUnit | **43 tests, 189 assertions** |
-| Security + cookie/TOTP | **19 tests, 67 assertions** |
+| Full PHPUnit | **44 tests, 192 assertions** |
+| Security + cookie/TOTP | **20 tests, 70 assertions** |
 | Performance | **4 tests, 15 assertions** |
 
 ### B) Module smoke scripts (needs Postgres + Redis)
@@ -320,7 +320,7 @@ Runs full PHPUnit → security focus → performance focus → module smokes + g
 
 ## Demo users
 
-Password for all accounts: **`Password@123`**
+Initial seed password for all accounts: **`Password@123`** (forced change outside `testing`; re-seed does **not** reset changed passwords)
 
 | Role | Email | Notes |
 |---|---|---|
@@ -460,10 +460,13 @@ Channel retries API: `POST /api/channel/retries` queues on Redis, or processes i
 | Unlinked payments | Cap via `IRCUB_MAX_UNLINKED_PAYMENT` (channel path uses USD after FX) |
 | Sensitive payloads | Channel audit rows strip provider blobs at write; list APIs omit `national_id` |
 | Channel callback | HMAC + throttle; SUCCESS requires matching `amount` |
-| Simulate / mocks | Simulate forced off outside local/testing; mock adapters fail closed without `CHANNEL_ALLOW_MOCK` / `FMIS_ALLOW_MOCK` |
+| Simulate / mocks | Simulate forced off outside local/testing; mock adapters fail closed without allow flags |
+| Callback secret | ≥32 chars required outside PHPUnit; Docker entrypoint generates if missing |
+| Errors | Non-debug responses hide internal exceptions (`SafeHttpError`) |
+| Docker host | Postgres/Redis/admin UIs bound to `127.0.0.1`; Redis `requirepass` |
 | Headers | API CSP `default-src 'none'`; Docker SPA CSP without `unsafe-eval` |
-| Mocks / docs | `/mock-api` and Swagger limited to local/testing unless enabled |
-| Throttle | Login `10/min`, callback `60/min`, password/2FA `5–10/min`, CSV upload & channel retries `10/min` |
+| Docs | Swagger off by default in compose; seed password not printed in OpenAPI |
+| Throttle | Login, callback, password/2FA, payment/meter CSV upload, channel retries |
 
 ---
 

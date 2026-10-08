@@ -114,11 +114,11 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
     Route::get('channel/rates', [ChannelPaymentController::class, 'rates'])
         ->middleware('permission:payments.capture|payments.view');
     Route::get('channel/payments', [ChannelPaymentController::class, 'index'])
-        ->middleware('permission:payments.view');
+        ->middleware('permission:payments.view|payments.view_own');
     Route::post('channel/payments', [ChannelPaymentController::class, 'store'])
         ->middleware('permission:payments.capture');
     Route::get('channel/payments/{channelPayment}', [ChannelPaymentController::class, 'show'])
-        ->middleware('permission:payments.view');
+        ->middleware('permission:payments.view|payments.view_own');
     Route::post('channel/payments/{channelPayment}/check', [ChannelPaymentController::class, 'check'])
         ->middleware('permission:payments.capture|payments.approve_reversal');
     Route::post('channel/retries', [ChannelPaymentController::class, 'retryDue'])

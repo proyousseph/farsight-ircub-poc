@@ -55,7 +55,9 @@ class MeterReadingController extends Controller
         try {
             $reading = $this->capture($data, $request->user()?->id);
         } catch (\InvalidArgumentException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to capture meter reading.'),
+            ], 422);
         }
 
         return response()->json([
@@ -140,7 +142,14 @@ class MeterReadingController extends Controller
                     'consumption' => $reading->consumption,
                 ];
             } catch (\Throwable $e) {
-                $rejected[] = ['row' => $rowNumber, 'reason' => $e->getMessage(), 'data' => $data];
+                $rejected[] = [
+                    'row' => $rowNumber,
+                    'reason' => \App\Support\SafeHttpError::message($e, 'Row could not be processed.'),
+                    'data' => [
+                        'meter_no' => $data['meter_no'] ?? null,
+                        'period' => $data['period'] ?? null,
+                    ],
+                ];
             }
         }
 

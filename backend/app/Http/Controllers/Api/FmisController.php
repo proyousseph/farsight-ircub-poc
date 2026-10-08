@@ -55,7 +55,9 @@ class FmisController extends Controller
                 $message = 'Daily journal batch created (PENDING).';
             }
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to create FMIS batch.'),
+            ], 422);
         }
 
         return response()->json(['message' => $message, 'batch' => $batch], 201);
@@ -66,7 +68,9 @@ class FmisController extends Controller
         try {
             $batch = $this->posting->postBatch($fmisJournalBatch, $request->user()?->id);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to post FMIS batch.'),
+            ], 422);
         }
 
         return response()->json([
@@ -80,7 +84,9 @@ class FmisController extends Controller
         try {
             $batch = $this->posting->reverseBatch($fmisJournalBatch, $request->user()?->id);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to reverse FMIS batch.'),
+            ], 422);
         }
 
         return response()->json([

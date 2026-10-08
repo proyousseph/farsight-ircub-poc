@@ -55,8 +55,8 @@ Relevant test env flags (`phpunit.xml`):
 
 | Suite | Result |
 |---|---|
-| Full PHPUnit | **43 tests, 189 assertions** — passed |
-| Security + cookie/TOTP | **19 tests, 67 assertions** — passed |
+| Full PHPUnit | **44 tests, 192 assertions** — passed |
+| Security + cookie/TOTP | **20 tests, 70 assertions** — passed |
 | Performance | **4 tests, 15 assertions** — passed |
 | Smokes | Module 5 10/10 · Module 6 13/13 · Module 7 12/12 · Gaps 6/6 |
 
@@ -84,6 +84,7 @@ What those suites prove:
 | SUCCESS callback requires amount | `SecurityHardeningTest` |
 | Payer list omits national_id | `SecurityHardeningTest` |
 | Admin 2FA clear needs admin_password | `SecurityHardeningTest` |
+| Channel payment own-scope | `SecurityHardeningTest` |
 | Water bill PDF owner scope | `SecurityHardeningTest` |
 | Callback rejects empty identifiers | `SecurityHardeningTest` |
 | Must-change-password gate | `SecurityHardeningTest` |

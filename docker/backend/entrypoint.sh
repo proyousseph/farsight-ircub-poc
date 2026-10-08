@@ -25,6 +25,20 @@ if [ -z "${APP_KEY:-}" ]; then
   export APP_KEY="$(php artisan key:generate --force --show)"
 fi
 
+# Reject empty/short/known-insecure callback secrets (HMAC). Persist a generated value in-process only —
+# set CHANNEL_CALLBACK_SECRET in docker/.env.app for a stable secret across restarts.
+_cb="${CHANNEL_CALLBACK_SECRET:-}"
+if [ -z "$_cb" ] || [ "${#_cb}" -lt 32 ] \
+  || [ "$_cb" = "ircub-mock-callback-secret" ] \
+  || [ "$_cb" = "ircub-docker-callback-secret-change-me" ] \
+  || [ "$_cb" = "change-me-to-a-long-random-secret-32chars" ] \
+  || [ "$_cb" = "local-dev-only-change-me-32chars-min!!" ] \
+  || [ "$_cb" = "changeme" ] \
+  || [ "$_cb" = "secret" ]; then
+  export CHANNEL_CALLBACK_SECRET="$(php -r 'echo bin2hex(random_bytes(32));')"
+  echo "[ircub] CHANNEL_CALLBACK_SECRET was missing/insecure — generated ephemeral secret (set a stable >=32 char value in docker/.env.app)"
+fi
+
 php artisan config:clear >/dev/null 2>&1 || true
 
 # Only the API container should migrate/seed by default

@@ -187,6 +187,43 @@ class SecurityHardeningTest extends TestCase
         }
     }
 
+    public function test_channel_payment_show_enforces_own_scope(): void
+    {
+        $taxpayer = User::query()->where('email', 'taxpayer@ircub.test')->firstOrFail();
+        $this->assertNotNull($taxpayer->payer_id);
+        $otherPayer = Payer::query()->where('id', '!=', $taxpayer->payer_id)->firstOrFail();
+
+        $foreign = \App\Models\ChannelPayment::query()->create([
+            'payer_id' => $otherPayer->id,
+            'revenue_code' => 'BIZLIC',
+            'channel' => 'BANK',
+            'amount_usd' => 15,
+            'amount_local' => 15,
+            'local_currency' => 'USD',
+            'fx_rate' => 1,
+            'external_ref' => 'SEC-CH-OWN-'.uniqid(),
+            'status' => 'PENDING',
+            'created_by' => $taxpayer->id,
+        ]);
+
+        Sanctum::actingAs($taxpayer);
+        $this->getJson('/api/channel/payments/'.$foreign->id)->assertForbidden();
+
+        $own = \App\Models\ChannelPayment::query()->create([
+            'payer_id' => $taxpayer->payer_id,
+            'revenue_code' => 'BIZLIC',
+            'channel' => 'BANK',
+            'amount_usd' => 12,
+            'amount_local' => 12,
+            'local_currency' => 'USD',
+            'fx_rate' => 1,
+            'external_ref' => 'SEC-CH-OWN2-'.uniqid(),
+            'status' => 'PENDING',
+            'created_by' => $taxpayer->id,
+        ]);
+        $this->getJson('/api/channel/payments/'.$own->id)->assertOk();
+    }
+
     public function test_admin_clearing_2fa_requires_admin_password(): void
     {
         $admin = User::query()->where('email', 'admin@ircub.test')->firstOrFail();

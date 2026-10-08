@@ -41,7 +41,9 @@ class ChannelReconciliationController extends Controller
                 $request->user()?->id
             );
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to run channel reconciliation.'),
+            ], 422);
         }
 
         return response()->json([

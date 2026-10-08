@@ -365,7 +365,9 @@ class PaymentController extends Controller
         try {
             $payment = $this->reversals->request($payment, $request->user(), $data['reason']);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to request reversal.'),
+            ], 422);
         }
 
         return response()->json([
@@ -383,7 +385,9 @@ class PaymentController extends Controller
         try {
             $payment = $this->reversals->approve($payment, $request->user(), $data['notes'] ?? null);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to approve reversal.'),
+            ], 422);
         }
 
         return response()->json([
@@ -401,7 +405,9 @@ class PaymentController extends Controller
         try {
             $payment = $this->reversals->reject($payment, $request->user(), $data['notes'] ?? null);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to reject reversal.'),
+            ], 422);
         }
 
         return response()->json([

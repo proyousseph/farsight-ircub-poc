@@ -11,6 +11,8 @@ return [
     'insecure_callback_secrets' => [
         'ircub-mock-callback-secret',
         'ircub-docker-callback-secret-change-me',
+        'change-me-to-a-long-random-secret-32chars',
+        'local-dev-only-change-me-32chars-min!!',
         'changeme',
         'secret',
         '',

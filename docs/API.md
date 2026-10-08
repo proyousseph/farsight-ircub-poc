@@ -17,11 +17,9 @@
 2. Open http://localhost:8001/docs/api
 3. Authenticate as below.
 
-Demo login (local seeds):
-
-```json
-{ "email": "admin@ircub.test", "password": "Password@123" }
-```
+Demo login (local seeds): use emails from the README seed table. The initial
+password is set in `RolePermissionSeeder` and **must be changed** outside the
+`testing` environment (`must_change_password`).
 
 ### Auth model
 
@@ -46,6 +44,8 @@ Also:
 - SUCCESS channel callbacks must include `amount` matching the initiated USD amount
 - Mock channel/FMIS adapters require `CHANNEL_ALLOW_MOCK` / `FMIS_ALLOW_MOCK` (default on only in local/testing)
 - Admin clearing another user’s 2FA requires `admin_password` (actor password)
+- Channel payment list/show respect `payments.view` / `payments.view_own` (OwnsPayerScope)
+- API error bodies use `SafeHttpError` (domain `InvalidArgumentException` only when `APP_DEBUG=false`)
 
 ### Import into Postman
 

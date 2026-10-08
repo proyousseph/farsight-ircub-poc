@@ -69,7 +69,8 @@ components:
         password:
           type: string
           format: password
-          example: Password@123
+          description: Initial seed password from RolePermissionSeeder (must change outside testing).
+          example: "<seed-password>"
 
     LoginResponse:
       type: object

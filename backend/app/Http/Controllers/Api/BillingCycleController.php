@@ -34,7 +34,9 @@ class BillingCycleController extends Controller
         try {
             $cycle = $this->billing->run($data['period'], $request->user()?->id);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json([
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to run billing cycle.'),
+            ], 422);
         }
 
         return response()->json([
