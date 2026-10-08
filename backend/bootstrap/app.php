@@ -26,6 +26,25 @@ return Application::configure(basePath: dirname(__DIR__))
             'trusted.origin' => \App\Http\Middleware\EnsureTrustedOrigin::class,
         ]);
 
+        // Contabo / SSI Nginx terminates TLS and forwards X-Forwarded-Proto.
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+                | Request::HEADER_X_FORWARDED_PREFIX,
+        );
+
+        // API-only app: never redirect guests to a named web `login` route (causes 500).
+        $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return null;
+            }
+
+            return '/';
+        });
+
         // Auth cookie payload is encrypted via Crypt in AuthCookie (not double-encrypted by framework).
         $middleware->encryptCookies(except: [
             \App\Support\AuthCookie::NAME,

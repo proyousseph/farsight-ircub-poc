@@ -1,5 +1,6 @@
 **/node_modules
-**/vendor
+# Composer vendor only — do NOT exclude frontend/src/assets/vendor (Dompet CSS/JS).
+backend/vendor
 **/dist
 **/.git
 **/storage/logs/*
@@ -10,10 +11,10 @@
 **/.env.*
 !**/.env.example
 !**/.env.app.example
+!**/.env.app.contabo.example
 **/bootstrap/cache/*.php
 **/*.md
 !README.md
 backend/tests
-frontend/src/assets/icons
 **/.cursor
 **/agent-transcripts

@@ -10,9 +10,9 @@ Scope: **Modules 1–7** (POC brief calendar window: 5 working days)
 | Repository | https://github.com/proyousseph/farsight-ircub-poc |
 | Demo (planned) | https://ircub.waagefaal.so |
 
-> Demo subdomain DNS already points to the Contabo VPS (`161.97.90.92`).  
-> **Docker:** infra always available; full app stack via `docker compose --profile app`.  
-> **Next for Contabo:** point Nginx/TLS at the `web` service (or host `:8080`) with a production `APP_KEY` + secrets.
+> **Live demo:** https://ircub.waagefaal.so (Contabo `161.97.90.92`, behind `ssiwebsite-proxy` TLS).  
+> **Docker:** local `docker compose --profile app`; Contabo overlay `docker-compose.contabo.yml`.  
+> Demo login: `admin@ircub.test` / `Password@123` (must change password on first use).
 
 ---
 
@@ -160,7 +160,7 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 - [x] Security hardening (headers, throttle, cookie auth, TOTP, taxpayer scope)
 - [x] Performance hardening (indexes, queues, scheduler, cache meta, lazy UI)
 - [x] Docker Compose **full app profile** (`api` + `queue` + `scheduler` + `web` on `:8080`)
-- [ ] Contabo VPS deploy + HTTPS on `ircub.waagefaal.so`
+- [x] Contabo VPS deploy + HTTPS on [`ircub.waagefaal.so`](https://ircub.waagefaal.so) (behind `ssiwebsite-proxy`)
 
 ---
 
@@ -480,7 +480,7 @@ Channel retries API: `POST /api/channel/retries` queues on Redis, or processes i
 - Only sandbox / test data is used — no real personal, taxpayer, or financial data.
 - **TOTP** is the real 2FA path; stub OTP `123456` is **local/testing only** (`IRCUB_2FA_ALLOW_STUB`).
 - Live frontend routes are IRCUB-only.
-- Docker: infra by default; `--profile tools` for admin UIs; `--profile app` full stack on `:8080`. Contabo HTTPS is still the final deploy step.
+- Docker: infra by default; `--profile tools` for admin UIs; `--profile app` full stack on `:8080`; Contabo uses `docker-compose.contabo.yml` behind `ssiwebsite-proxy`.
 - Mock channel/FMIS adapters are POC-only (`CHANNEL_ALLOW_MOCK` / `FMIS_ALLOW_MOCK`); fail closed outside local/testing.
 - Bill notifications are queued (`NotifyWaterBillJob`); with `QUEUE_CONNECTION=sync` they still run inline for tests/demo.
 

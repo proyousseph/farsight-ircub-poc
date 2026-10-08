@@ -221,13 +221,15 @@ class RolePermissionSeeder extends Seeder
             ],
         ];
 
+        $phoneSeq = 6100001;
         foreach ($demoUsers as $demo) {
             /** @var User $user */
             $user = User::query()->firstOrCreate(
                 ['email' => $demo['email']],
                 [
                     'name' => $demo['name'],
-                    'phone' => '25261'.fake()->numerify('#######'),
+                    // Deterministic phones — no Faker (unavailable in --no-dev production images).
+                    'phone' => '252'.(string) $phoneSeq++,
                     'password' => Hash::make('Password@123'),
                     'is_active' => true,
                     // Shared demo password — force rotation everywhere except automated tests.

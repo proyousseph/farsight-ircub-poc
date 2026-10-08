@@ -1,0 +1,18 @@
+# Contabo overlay — use with:
+#   docker compose --profile app -f docker-compose.yml -f docker-compose.contabo.yml up -d --build
+#
+# Joins ircub-web to the existing SSI proxy network so Nginx can reach http://ircub-web:80.
+# Discover network: docker network ls | grep ssi
+
+services:
+  web:
+    networks:
+      - default
+      - ssi_proxy
+
+networks:
+  ssi_proxy:
+    external: true
+    # Override at deploy time if project name differs:
+    #   docker network ls
+    name: ssiwebsite_default

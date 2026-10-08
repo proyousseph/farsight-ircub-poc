@@ -11,6 +11,7 @@ Thumbs.db
 !.env.example
 !.env.app.example
 !docker/.env.app.example
+!docker/.env.app.contabo.example
 
 # Frontend
 frontend/node_modules/

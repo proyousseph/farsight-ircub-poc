@@ -7,6 +7,9 @@
 | `docker compose up -d` | Postgres **127.0.0.1:5433**, Redis **127.0.0.1:6379** (password-protected) |
 | `docker compose --profile tools up -d` | + pgAdmin **127.0.0.1:5050**, Redis Insight **127.0.0.1:5540** |
 | `docker compose --profile app up -d --build` | + **api**, **queue**, **scheduler**, **web** (**127.0.0.1:8080**) |
+| Contabo (behind SSI proxy) | `docker compose --profile app -f docker-compose.yml -f docker-compose.contabo.yml up -d --build` |
+
+Contabo: use [`docker/.env.app.contabo.example`](.env.app.contabo.example), Nginx snippet [`docker/nginx/ircub.waagefaal.so.conf`](nginx/ircub.waagefaal.so.conf), deploy helper [`scripts/deploy_contabo.ps1`](../scripts/deploy_contabo.ps1).
 
 Ports bind to **localhost only** (including web). Redis default password: `ircub_redis_local` (`REDIS_PASSWORD`). To expose the SPA on the LAN: `IRCUB_WEB_BIND=0.0.0.0` (not recommended).
 
