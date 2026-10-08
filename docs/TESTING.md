@@ -55,8 +55,8 @@ Relevant test env flags (`phpunit.xml`):
 
 | Suite | Result |
 |---|---|
-| Full PHPUnit | **50 tests, 214 assertions** — passed |
-| Security + cookie/TOTP | **26 tests, 88 assertions** — passed (USD-only, TIN normalize, pay_own, callback amount, audit hash chain, 2FA) |
+| Full PHPUnit | **58 tests, 240 assertions** — passed |
+| Security + cookie/TOTP | **30 tests, 96 assertions** — passed |
 | Performance | **4 tests, 15 assertions** — passed |
 | Smokes | Module 5 10/10 · Module 6 13/13 · Module 7 12/12 · Gaps 6/6 |
 

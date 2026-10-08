@@ -1,12 +1,13 @@
 {
   "info": {
     "name": "IRCUB API",
-    "description": "Farsight Africa IRCUB POC — import into Postman. After Login, the token is saved to collection variable `token`.\n\nOpenAPI source: docs/openapi.yaml\nSwagger UI: http://127.0.0.1:8001/docs/api",
+    "description": "Farsight Africa IRCUB POC — Bearer-first. Login with X-IRCUB-Return-Token: 1 stores `token`. Cookie jar is cleared after login so Origin CSRF does not block API tools. Change-password captures a fresh token. Logout is last.\n\nOpenAPI: docs/openapi.yaml · Swagger (local): http://127.0.0.1:8001/docs/api",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://127.0.0.1:8001" },
-    { "key": "token", "value": "" }
+    { "key": "token", "value": "" },
+    { "key": "origin", "value": "http://127.0.0.1:8001" }
   ],
   "auth": {
     "type": "bearer",
@@ -24,7 +25,11 @@
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "if (json.token) { pm.collectionVariables.set('token', json.token); }"
+                  "if (json.token) { pm.collectionVariables.set('token', json.token); }",
+                  "try {",
+                  "  const jar = pm.cookies.jar();",
+                  "  jar.clear(pm.request.url, function () {});",
+                  "} catch (e) {}"
                 ],
                 "type": "text/javascript"
               }
@@ -36,7 +41,8 @@
             "header": [
               { "key": "Accept", "value": "application/json" },
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-IRCUB-Return-Token", "value": "1" }
+              { "key": "X-IRCUB-Return-Token", "value": "1" },
+              { "key": "Origin", "value": "{{origin}}" }
             ],
             "body": {
               "mode": "raw",
@@ -47,11 +53,29 @@
         },
         {
           "name": "Change password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) { pm.collectionVariables.set('token', json.token); }",
+                  "try {",
+                  "  const jar = pm.cookies.jar();",
+                  "  jar.clear(pm.request.url, function () {});",
+                  "} catch (e) {}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "PUT",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-IRCUB-Return-Token", "value": "1" },
+              { "key": "Origin", "value": "{{origin}}" }
             ],
             "body": {
               "mode": "raw",
@@ -66,14 +90,6 @@
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }],
             "url": "{{baseUrl}}/api/auth/me"
-          }
-        },
-        {
-          "name": "Logout",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": "{{baseUrl}}/api/auth/logout"
           }
         }
       ]
@@ -218,6 +234,22 @@
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }],
             "url": "{{baseUrl}}/mock-api/fmis/journals?date=2026-10-07"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth (end)",
+      "item": [
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" }
+            ],
+            "url": "{{baseUrl}}/api/auth/logout"
           }
         }
       ]

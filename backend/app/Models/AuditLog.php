@@ -48,7 +48,16 @@ class AuditLog extends Model
         $ip = Request::ip();
 
         return DB::transaction(function () use ($entityType, $entityId, $action, $before, $after, $userId, $ip) {
-            // Serialize writers so prev_hash / entry_hash form a linear chain.
+            // Serialize concurrent writers (API + queue + scheduler). lockForUpdate alone
+            // does not serialize inserts under READ COMMITTED when rows don't overlap.
+            $driver = DB::connection()->getDriverName();
+            if ($driver === 'pgsql') {
+                DB::statement('SELECT pg_advisory_xact_lock(?)', [0x49524355]); // 'IRCU'
+            } elseif ($driver === 'mysql') {
+                DB::select('SELECT GET_LOCK(?, 10) AS l', ['ircub_audit_chain']);
+            }
+            // SQLite serializes writers at the DB level; PHPUnit is single-process.
+
             $prev = static::query()->orderByDesc('id')->lockForUpdate()->first();
             $prevHash = $prev?->entry_hash ?: str_repeat('0', 64);
 
@@ -80,9 +89,52 @@ class AuditLog extends Model
     }
 
     /**
-     * Verify the hash chain from the first row through $throughId (or all rows).
+     * Backfill prev_hash/entry_hash for rows written before the chain existed.
+     * Recomputes a contiguous chain from the first row (genesis prev = 64 zeros).
      *
-     * @return array{ok: bool, checked: int, broken_at: int|null}
+     * @return array{backfilled: int}
+     */
+    public static function backfillChain(): array
+    {
+        return DB::transaction(function () {
+            $driver = DB::connection()->getDriverName();
+            if ($driver === 'pgsql') {
+                DB::statement('SELECT pg_advisory_xact_lock(?)', [0x49524355]);
+            }
+
+            $prevHash = str_repeat('0', 64);
+            $count = 0;
+
+            foreach (static::query()->orderBy('id')->lockForUpdate()->cursor() as $row) {
+                $canonical = json_encode([
+                    'entity_type' => $row->entity_type,
+                    'entity_id' => (int) $row->entity_id,
+                    'action' => $row->action,
+                    'user_id' => $row->user_id,
+                    'before_values' => $row->before_values,
+                    'after_values' => $row->after_values,
+                    'ip_address' => $row->ip_address,
+                    'prev_hash' => $prevHash,
+                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+                $entryHash = hash('sha256', (string) $canonical);
+                $row->forceFill([
+                    'prev_hash' => $prevHash,
+                    'entry_hash' => $entryHash,
+                ])->save();
+                $prevHash = $entryHash;
+                $count++;
+            }
+
+            return ['backfilled' => $count];
+        });
+    }
+
+    /**
+     * Verify the hash chain. Skips leading pre-hash rows (NULL entry_hash) so
+     * Contabo/prod DBs migrated mid-life can verify from the first hashed row.
+     *
+     * @return array{ok: bool, checked: int, broken_at: int|null, skipped_unhashed: int}
      */
     public static function verifyChain(?int $throughId = null): array
     {
@@ -93,11 +145,23 @@ class AuditLog extends Model
 
         $prevHash = str_repeat('0', 64);
         $checked = 0;
+        $skipped = 0;
+        $started = false;
 
         foreach ($query->cursor() as $row) {
+            if (! $started) {
+                if (empty($row->entry_hash)) {
+                    $skipped++;
+                    continue;
+                }
+                // First hashed row may start after unhashed history — accept its prev_hash as genesis or prior.
+                $started = true;
+                $prevHash = $row->prev_hash ?: str_repeat('0', 64);
+            }
+
             $checked++;
             if (($row->prev_hash ?: '') !== $prevHash) {
-                return ['ok' => false, 'checked' => $checked, 'broken_at' => (int) $row->id];
+                return ['ok' => false, 'checked' => $checked, 'broken_at' => (int) $row->id, 'skipped_unhashed' => $skipped];
             }
 
             $canonical = json_encode([
@@ -113,12 +177,12 @@ class AuditLog extends Model
 
             $expected = hash('sha256', (string) $canonical);
             if (($row->entry_hash ?: '') !== $expected) {
-                return ['ok' => false, 'checked' => $checked, 'broken_at' => (int) $row->id];
+                return ['ok' => false, 'checked' => $checked, 'broken_at' => (int) $row->id, 'skipped_unhashed' => $skipped];
             }
 
             $prevHash = $row->entry_hash;
         }
 
-        return ['ok' => true, 'checked' => $checked, 'broken_at' => null];
+        return ['ok' => true, 'checked' => $checked, 'broken_at' => null, 'skipped_unhashed' => $skipped];
     }
 }

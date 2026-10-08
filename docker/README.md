@@ -48,7 +48,7 @@ Containers: `ircub-api`, `ircub-queue`, `ircub-scheduler`, `ircub-web`, `ircub-p
 | `CHANNEL_ALLOW_MOCK` / `FMIS_ALLOW_MOCK` | In-process mocks — **false** on Contabo |
 | `IRCUB_AUTH_COOKIE_SAMESITE` | Cookie SameSite (`lax` default) |
 | `IRCUB_MAX_UNLINKED_PAYMENT` | Cap for payments not linked to assessment/bill |
-| `IRCUB_SEED_ON_BOOT` | Seed demo users on API boot |
+| `IRCUB_SEED_ON_BOOT` | Seed demo users on API boot (from `docker/.env.app`; compose does **not** override api with `false`) |
 | `IRCUB_2FA_ALLOW_STUB` | Demo OTP — compose default **false** |
 | `IRCUB_DOCS_ENABLED` | Swagger — compose default **false** |
 | `REDIS_PASSWORD` | Redis `requirepass` (default `ircub_redis_local`) |
@@ -110,7 +110,7 @@ docker/
 
 ## Tests
 
-Automated tests run on the **host** (see [`docs/TESTING.md`](../docs/TESTING.md)). Last green: **50 / 214** PHPUnit · security **26 / 88** · performance **4 / 15**.
+Automated tests run on the **host** (see [`docs/TESTING.md`](../docs/TESTING.md)). Last green: **58 / 240** PHPUnit · security **30 / 96** · performance **4 / 15**.
 
 ```bash
 cd backend

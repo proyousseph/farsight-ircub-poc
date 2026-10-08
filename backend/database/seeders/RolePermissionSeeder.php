@@ -234,8 +234,11 @@ class RolePermissionSeeder extends Seeder
                     'phone' => '252'.(string) $phoneSeq++,
                     'password' => Hash::make('Password@123'),
                     'is_active' => true,
-                    // Shared demo password — force rotation everywhere except automated tests.
-                    'must_change_password' => ! app()->environment('testing'),
+                    // Force rotation except tests and hosted-demo opt-out (IRCUB_DEMO_SKIP_PASSWORD_CHANGE).
+                    'must_change_password' => ! (
+                        app()->environment('testing')
+                        || filter_var(env('IRCUB_DEMO_SKIP_PASSWORD_CHANGE', false), FILTER_VALIDATE_BOOL)
+                    ),
                     'email_verified_at' => now(),
                 ]
             );

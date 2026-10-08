@@ -116,8 +116,13 @@ README.md
 # From the Project/ folder
 docker compose up -d
 cp docker/.env.app.example docker/.env.app
-# Edit docker/.env.app: set APP_KEY and a long CHANNEL_CALLBACK_SECRET (32+ characters)
+# Edit docker/.env.app:
+#   - APP_KEY (php artisan key:generate --show)
+#   - CHANNEL_CALLBACK_SECRET (>=32 chars)
+#   - IRCUB_SEED_ON_BOOT=true  (example default) so demo users exist on first boot
 docker compose --profile app up -d --build
+# If you set IRCUB_SEED_ON_BOOT=false, seed once:
+#   docker compose exec api php artisan db:seed --force
 ```
 
 Open **http://localhost:8080**
@@ -151,7 +156,10 @@ cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
+# Required for channel callbacks / Module 5 smoke (do not leave empty):
+php -r "file_put_contents('.env', preg_replace('/^CHANNEL_CALLBACK_SECRET=.*/m', 'CHANNEL_CALLBACK_SECRET='.bin2hex(random_bytes(32)), file_get_contents('.env')));"
 php artisan migrate:fresh --seed
+# Swagger: http://127.0.0.1:8001/docs/api (IRCUB_DOCS_ENABLED=true in .env.example)
 php artisan serve --host=127.0.0.1 --port=8001
 
 # 3) Frontend (new terminal)
@@ -197,8 +205,8 @@ php artisan test
 
 | Suite | Latest green run |
 |---|---|
-| All PHPUnit | **50 tests, 214 assertions** |
-| Security + cookie / TOTP | **26 tests, 88 assertions** |
+| All PHPUnit | **58 tests, 240 assertions** |
+| Security + cookie / TOTP | **30 tests, 96 assertions** |
 | Performance | **4 tests, 15 assertions** |
 
 Module smoke scripts (need Postgres + Redis):
@@ -243,21 +251,21 @@ bash scripts/run_all_tests.sh
 
 ## Main features (plain language)
 
-**Users & security** — Six roles, permissions, optional TOTP, audit log with tamper-evident hash chain, payment reversals that require a different approver.
+**Users & security** — Six roles, permissions, optional TOTP, audit log with a tamper-evident hash chain, payment reversals that need a different person to approve.
 
-**Registry** — Payers / customers with duplicate checks and a 360° profile.
+**Registry** — Payers / customers with duplicate checks (including normalized TIN), 360° profile, and configurable revenue types.
 
-**Tax** — Assessments, payments, CSV upload, filters, audit trail.
+**Tax** — Assessments, payments (USD capture), CSV upload, filters, audit trail.
 
-**Water** — Tariffs, meter readings, monthly bills, PDFs, statements, abnormal-use holds.
+**Water** — Tariffs, meter readings, monthly bills (past months only), PDFs, statements, abnormal-use holds; water accounts can be linked to existing payers.
 
-**Channels** — Mock FX, bank/mobile initiate + HMAC callback, retries, daily reconciliation.
+**Channels** — Mock FX, bank/mobile initiate + HMAC callback, retries, daily reconciliation. Success needs a matching amount (no fake auto-success).
 
 **FMIS** — GL mapping, daily journals, post/reverse, IRCUB vs FMIS recon.
 
 **Dashboard** — Trends, targets, water efficiency, OLS next-quarter forecast, alerts.
 
-**Taxpayer self-service** — View own data; pay own linked obligations (`payments.pay_own`); cannot capture arbitrary payments.
+**Taxpayer self-service** — View own data; pay and check own linked obligations; cannot capture arbitrary payments for other people.
 
 ---
 
@@ -277,11 +285,12 @@ bash scripts/run_all_tests.sh
 
 - Encrypted HttpOnly login cookie; optional Bearer token for API tools  
 - Deactivated users and “must change password” are blocked from business APIs  
-- Taxpayers are scoped to their own payer profile  
-- Channel callbacks use HMAC; successful settlement needs a matching amount  
-- Sensitive fields are redacted in audit / channel responses  
-- Audit log entries are hash-chained (tamper-evident)  
-- Mocks and Swagger fail closed / stay off outside local testing unless you allow them  
+- Taxpayers only see and pay their own linked obligations  
+- Channel settlement uses HMAC; amount must match (callbacks and status checks)  
+- Sensitive fields are hidden in audit / channel responses  
+- Audit log is hash-chained (tamper-evident); optional: `php artisan ircub:audit-backfill-chain --verify`  
+- Same password cannot be reused on password change  
+- Mocks and Swagger stay off outside local testing unless you explicitly allow them  
 
 ---
 

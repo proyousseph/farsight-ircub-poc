@@ -25,8 +25,8 @@ php scripts/verify_gaps.php
 cat <<'EOF'
 
 ALL TEST SUITES PASSED
-  - PHPUnit (full)              expected ~50 tests / ~214 assertions
-  - Security + cookie/TOTP      expected ~26 tests / ~88 assertions
+  - PHPUnit (full)              expected ~58 tests / ~240 assertions
+  - Security + cookie/TOTP      expected ~30 tests / ~96 assertions
   - Performance                 expected ~4 tests / ~15 assertions
   - Module 5 / 6 / 7 smokes + gaps (10+13+12+6)
 EOF

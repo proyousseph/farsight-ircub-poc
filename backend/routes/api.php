@@ -60,7 +60,11 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
         ->middleware('permission:payers.create');
 
     Route::get('revenue-types', [RevenueTypeController::class, 'index'])
-        ->middleware('permission:assessments.view|assessments.view_own');
+        ->middleware('permission:assessments.view|assessments.view_own|config.manage');
+    Route::post('revenue-types', [RevenueTypeController::class, 'store'])
+        ->middleware('permission:config.manage');
+    Route::put('revenue-types/{revenueType}', [RevenueTypeController::class, 'update'])
+        ->middleware('permission:config.manage');
 
     Route::get('assessments', [AssessmentController::class, 'index'])
         ->middleware('permission:assessments.view|assessments.view_own');
@@ -83,7 +87,11 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
         ->middleware('permission:payments.approve_reversal');
 
     Route::get('water-accounts', [WaterAccountController::class, 'index'])
-        ->middleware('permission:bills.view|meters.capture|billing.run');
+        ->middleware('permission:bills.view|meters.capture|billing.run|payers.create');
+    Route::post('water-accounts', [WaterAccountController::class, 'store'])
+        ->middleware('permission:payers.create|meters.capture');
+    Route::put('water-accounts/{waterAccount}', [WaterAccountController::class, 'update'])
+        ->middleware('permission:payers.create|meters.capture');
 
     Route::get('meter-readings', [MeterReadingController::class, 'index'])
         ->middleware('permission:meters.capture|bills.view');
@@ -120,7 +128,7 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
     Route::get('channel/payments/{channelPayment}', [ChannelPaymentController::class, 'show'])
         ->middleware('permission:payments.view|payments.view_own');
     Route::post('channel/payments/{channelPayment}/check', [ChannelPaymentController::class, 'check'])
-        ->middleware('permission:payments.capture|payments.approve_reversal');
+        ->middleware('permission:payments.capture|payments.approve_reversal|payments.pay_own|payments.view|payments.view_own');
     Route::post('channel/retries', [ChannelPaymentController::class, 'retryDue'])
         ->middleware(['permission:payments.approve_reversal|payments.capture', 'throttle:10,1']);
     Route::get('channel/notifications', [ChannelPaymentController::class, 'notifications'])

@@ -123,7 +123,8 @@ services:
       IRCUB_2FA_ALLOW_STUB: ${IRCUB_2FA_ALLOW_STUB:-false}
       IRCUB_DEMO_OTP: ${IRCUB_DEMO_OTP:-}
       IRCUB_DOCS_ENABLED: ${IRCUB_DOCS_ENABLED:-false}
-      IRCUB_SEED_ON_BOOT: ${IRCUB_SEED_ON_BOOT:-false}
+      # Seed flag comes from docker/.env.app (env_file) — do not override with empty ${:-false}
+      # (same bug class as former APP_KEY override). Queue/scheduler keep seed off below.
       IRCUB_RUN_MIGRATIONS: "true"
     depends_on:
       postgres:

@@ -15,7 +15,7 @@ RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts --opti
 
 COPY backend/ ./
 RUN composer dump-autoload --optimize \
-    && mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chmod -R ug+rwx storage bootstrap/cache
 
 COPY docker/backend/entrypoint.sh /usr/local/bin/entrypoint.sh

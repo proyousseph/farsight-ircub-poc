@@ -15,6 +15,7 @@ import {
 const ChannelPaymentsPage = () => {
   const canCapture = hasPermission('payments.capture') || hasPermission('payments.pay_own');
   const payOwnOnly = hasPermission('payments.pay_own') && !hasPermission('payments.capture');
+  const canCheckStatus = hasPermission('payments.capture') || hasPermission('payments.pay_own') || hasPermission('payments.view') || hasPermission('payments.view_own');
   const canRetry = hasPermission('payments.approve_reversal') || hasPermission('payments.capture');
   const canSeeAlerts = hasPermission('payments.approve_reversal') || hasPermission('audit.view');
   const [items, setItems] = useState([]);
@@ -75,7 +76,19 @@ const ChannelPaymentsPage = () => {
     loadRate('SOS');
     listPayers({ per_page: 100 }).then((res) => setPayers(res.data.data || [])).catch(() => {});
     listRevenueTypes().then((res) => setTypes(res.data.data || [])).catch(() => {});
-    listAssessments({ per_page: 50, status: 'OPEN' }).then((res) => setAssessments(res.data.data || [])).catch(() => {});
+    // OPEN + PART_PAID so taxpayers can finish partial payments (API allows both).
+    Promise.all([
+      listAssessments({ per_page: 50, status: 'OPEN' }),
+      listAssessments({ per_page: 50, status: 'PART_PAID' }),
+    ]).then(([openRes, partRes]) => {
+      const rows = [...(openRes.data.data || []), ...(partRes.data.data || [])];
+      const seen = new Set();
+      setAssessments(rows.filter((a) => {
+        if (seen.has(a.id)) return false;
+        seen.add(a.id);
+        return true;
+      }));
+    }).catch(() => {});
     if (canSeeAlerts) {
       listSupervisorNotifications({ per_page: 10 }).then((res) => setNotifications(res.data.data || [])).catch(() => {});
     }
@@ -289,7 +302,7 @@ const ChannelPaymentsPage = () => {
                           <td><span className="badge badge-primary">{p.status}</span></td>
                           <td>{p.retry_count}/{p.max_retries}</td>
                           <td>
-                            {canRetry && !['SUCCESS', 'PERMANENTLY_FAILED'].includes(p.status) && (
+                            {canCheckStatus && !['SUCCESS', 'PERMANENTLY_FAILED'].includes(p.status) && (
                               <button className="btn btn-sm btn-outline-secondary" onClick={() => onCheck(p.id)}>Check</button>
                             )}
                           </td>

@@ -2,8 +2,7 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
-# Prefer clean install; fall back if lock drifts on deploy hosts.
-RUN npm ci || npm install
+RUN npm ci
 COPY frontend/ ./
 # Relative API path so browser talks to the same host (Nginx proxies /api).
 ARG VITE_API_URL=/api

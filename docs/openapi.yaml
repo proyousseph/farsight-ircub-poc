@@ -223,6 +223,68 @@ paths:
         '200':
           description: Logged out
 
+  /api/auth/password:
+    put:
+      tags: [Auth]
+      summary: Change password (required when must_change_password)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, password, password_confirmation]
+              properties:
+                current_password: { type: string, format: password }
+                password: { type: string, format: password }
+                password_confirmation: { type: string, format: password }
+      responses:
+        '200':
+          description: Password updated (new token issued)
+        '422':
+          description: Validation failed (incl. same-as-current)
+
+  /api/auth/2fa/setup:
+    post:
+      tags: [Auth]
+      summary: Begin TOTP setup (password+OTP required if 2FA already active)
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password: { type: string }
+                otp: { type: string }
+      responses:
+        '200':
+          description: Returns secret + otpauth_url
+        '422':
+          description: Re-setup step-up failed
+
+  /api/auth/2fa/confirm:
+    post:
+      tags: [Auth]
+      summary: Confirm TOTP with current code
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [otp]
+              properties:
+                otp: { type: string }
+      responses:
+        '200':
+          description: 2FA enabled
+
   /api/health/secure:
     get:
       tags: [Auth]
@@ -320,6 +382,50 @@ paths:
       responses:
         '200':
           description: OK
+    post:
+      tags: [Revenue]
+      summary: Create revenue type (config.manage; syncs GL mapping)
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revenue_code, name, category, gl_code]
+              properties:
+                revenue_code: { type: string }
+                name: { type: string }
+                category: { type: string, enum: [TAX, WATER] }
+                gl_code: { type: string }
+                default_rate: { type: number }
+                is_active: { type: boolean }
+      responses:
+        '201':
+          description: Created
+
+  /api/revenue-types/{id}:
+    put:
+      tags: [Revenue]
+      summary: Update revenue type rates / GL / active flag
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                category: { type: string, enum: [TAX, WATER] }
+                gl_code: { type: string }
+                default_rate: { type: number }
+                is_active: { type: boolean }
+      responses:
+        '200':
+          description: Updated
 
   /api/assessments:
     get:
@@ -471,6 +577,49 @@ paths:
       responses:
         '200':
           description: OK
+    post:
+      tags: [Water]
+      summary: Link a new water account/meter to an existing payer
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payer_id, account_no, meter_no, tariff_class]
+              properties:
+                payer_id: { type: integer }
+                account_no: { type: string }
+                meter_no: { type: string }
+                tariff_class: { type: string, enum: [DOMESTIC, COMMERCIAL, INSTITUTIONAL] }
+                status: { type: string }
+                location: { type: string }
+      responses:
+        '201':
+          description: Created
+
+  /api/water-accounts/{id}:
+    put:
+      tags: [Water]
+      summary: Update water account (re-link payer / status / tariff)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payer_id: { type: integer }
+                tariff_class: { type: string }
+                status: { type: string }
+                location: { type: string }
+      responses:
+        '200':
+          description: Updated
 
   /api/meter-readings:
     get:

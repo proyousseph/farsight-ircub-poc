@@ -297,7 +297,7 @@ const PaymentsPage = () => {
                   Upload summary: total {uploadResult.summary.total_rows}, accepted {uploadResult.summary.accepted}, rejected {uploadResult.summary.rejected}
                   {uploadResult.rejected?.length > 0 && (
                     <ul className="mb-0 mt-2">
-                      {uploadResult.rejected.slice(0, 5).map((r) => (
+                      {uploadResult.rejected.slice(0, 25).map((r) => (
                         <li key={`${r.row}-${r.reason}`}>Row {r.row}: {r.reason}</li>
                       ))}
                     </ul>

@@ -96,6 +96,12 @@ class AuthController extends Controller
             ]);
         }
 
+        if (Hash::check($data['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['New password must be different from the current password.'],
+            ]);
+        }
+
         $user->password = $data['password'];
         $user->must_change_password = false;
         $user->save();

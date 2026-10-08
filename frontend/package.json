@@ -16,7 +16,7 @@
     "@fullcalendar/timegrid": "^6.1.11",
     "@loadable/component": "^5.16.4",
     "@n8tb1t/use-scroll-position": "^2.0.3",
-    "axios": "^1.7.9",
+    "axios": "^1.20.0",
     "formik": "^2.4.6",
     "lightgallery": "^2.7.2",
     "p-min-delay": "^4.0.2",

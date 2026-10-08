@@ -173,6 +173,9 @@ erDiagram
         bigint user_id FK
         json before
         json after
+        string ip_address
+        string prev_hash
+        string entry_hash
         timestamp created_at
     }
 
@@ -350,11 +353,13 @@ erDiagram
     fmis_journal_lines {
         bigint id PK
         bigint fmis_journal_batch_id FK
-        bigint payment_id FK UK
+        bigint payment_id FK
+        bigint source_payment_id
         string revenue_code
         string gl_code
         decimal amount
         string fmis_line_ref
+        timestamp reversed_at
     }
 
     revenue_targets {

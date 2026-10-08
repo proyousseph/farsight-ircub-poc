@@ -6,6 +6,9 @@ $localOrigins = [
     'http://127.0.0.1:5173',
     'http://localhost:5174',
     'http://127.0.0.1:5174',
+    // Docker SPA (N7) — both localhost and 127.0.0.1 bindings.
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
 ];
 
 $allowed = array_filter([$frontend]);

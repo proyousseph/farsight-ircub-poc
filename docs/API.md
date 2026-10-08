@@ -52,6 +52,12 @@ Also:
 - TIN is normalized to uppercase before unique validation
 - API error bodies use `SafeHttpError` (domain `InvalidArgumentException` only when `APP_DEBUG=false`)
 - Daily FMIS schedule posts the **previous** calendar day at 01:15; reverse keeps journal lines (`reversed_at` + `source_payment_id`, payment link retained)
+- Revenue types: `POST/PUT /api/revenue-types` (`config.manage`); auto-syncs GL mapping
+- Water accounts: `POST/PUT /api/water-accounts` to link meters to existing payers (`payers.create` / `meters.capture`)
+- Channel status check allowed for `payments.pay_own` / view scopes (own payer only via OwnsPayerScope)
+- Audit chain backfill: `php artisan ircub:audit-backfill-chain --verify`
+- Hosted demo: `IRCUB_DEMO_SKIP_PASSWORD_CHANGE=true` keeps seeded logins usable for assessors
+- Channel settlement on Contabo: mocks do **not** auto-SUCCESS — use signed HMAC callback (see Module 5 smoke)
 
 ### Import into Postman
 

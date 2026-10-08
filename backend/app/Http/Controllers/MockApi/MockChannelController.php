@@ -78,13 +78,9 @@ class MockChannelController extends Controller
         }
 
         $record['checks'] = (int) ($record['checks'] ?? 0) + 1;
-
-        // Auto-resolve PENDING after 2 status checks unless forced FAILED.
-        if ($record['status'] === 'PENDING' && $record['checks'] >= 2) {
-            $record['status'] = 'SUCCESS';
-            $record['resolved_at'] = now()->toIso8601String();
-        }
-
+        // Do not auto-flip PENDING → SUCCESS. Settlement must come from:
+        // - initiate simulate=SUCCESS (local/testing only when CHANNEL_ALLOW_SIMULATE), or
+        // - signed HMAC callback with matching amount.
         Cache::put($this->cacheKey($providerTxnId), $record, now()->addDay());
 
         return response()->json([

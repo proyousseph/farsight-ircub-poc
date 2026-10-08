@@ -31,8 +31,17 @@ class BillingCycleController extends Controller
             'period' => ['required', 'regex:/^\d{4}-\d{2}$/'],
         ]);
 
+        $period = $data['period'];
+        $current = now()->format('Y-m');
+        if ($period >= $current) {
+            return response()->json([
+                'message' => 'Billing cycles can only be run for completed (past) months.',
+                'errors' => ['period' => ['Use a period before '.$current.'.']],
+            ], 422);
+        }
+
         try {
-            $cycle = $this->billing->run($data['period'], $request->user()?->id);
+            $cycle = $this->billing->run($period, $request->user()?->id);
         } catch (\Throwable $e) {
             return response()->json([
                 'message' => \App\Support\SafeHttpError::message($e, 'Unable to run billing cycle.'),

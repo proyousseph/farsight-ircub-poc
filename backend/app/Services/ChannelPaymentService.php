@@ -186,16 +186,9 @@ class ChannelPaymentService
 
             // SUCCESS callbacks must prove amount integrity (not optional).
             if ($status === 'SUCCESS') {
-                if (! isset($payload['amount']) || ! is_numeric($payload['amount'])) {
-                    throw new \InvalidArgumentException('SUCCESS callback must include a numeric amount.');
-                }
-                $reported = (float) $payload['amount'];
-                if (abs($reported - (float) $channelPayment->amount_usd) > 0.009) {
-                    throw new \InvalidArgumentException('Callback amount does not match the initiated payment.');
-                }
+                $this->assertSuccessAmount($payload, (float) $channelPayment->amount_usd);
             } elseif (isset($payload['amount']) && is_numeric($payload['amount'])) {
-                $reported = (float) $payload['amount'];
-                if (abs($reported - (float) $channelPayment->amount_usd) > 0.009) {
+                if (abs((float) $payload['amount'] - (float) $channelPayment->amount_usd) > 0.009) {
                     throw new \InvalidArgumentException('Callback amount does not match the initiated payment.');
                 }
             }
@@ -256,6 +249,7 @@ class ChannelPaymentService
             $channelPayment->pushHistory('STATUS_CHECK', ['payload' => $this->redactPayload($statusPayload)]);
 
             if ($status === 'SUCCESS') {
+                $this->assertSuccessAmount($statusPayload, (float) $channelPayment->amount_usd);
                 $channelPayment->status = 'SUCCESS';
                 $channelPayment->save();
                 $this->finalizeSuccess($channelPayment, $userId);
@@ -480,6 +474,20 @@ class ChannelPaymentService
             if ($amountUsd - $waterBill->outstandingAmount() > 0.009) {
                 throw new \InvalidArgumentException('Amount exceeds water bill outstanding balance.');
             }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function assertSuccessAmount(array $payload, float $expectedUsd): void
+    {
+        if (! isset($payload['amount']) || ! is_numeric($payload['amount'])) {
+            throw new \InvalidArgumentException('SUCCESS settlement must include a numeric amount.');
+        }
+
+        if (abs((float) $payload['amount'] - $expectedUsd) > 0.009) {
+            throw new \InvalidArgumentException('Settlement amount does not match the initiated payment.');
         }
     }
 
