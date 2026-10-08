@@ -78,23 +78,39 @@ docker compose --profile app down          # app containers + infra
 docker compose --profile app --profile tools down -v   # also wipe volumes + tools
 ```
 
+## Contabo (hosted)
+
+Live: **https://ircub.waagefaal.so** · code on VPS at `/opt/ircub`.
+
+```bash
+# On VPS
+cd /opt/ircub
+docker compose --profile app -f docker-compose.yml -f docker-compose.contabo.yml up -d --build
+```
+
+- Env: copy [`docker/.env.app.contabo.example`](.env.app.contabo.example) → `.env` + `docker/.env.app`
+- Edge TLS: SSI `ssiwebsite-proxy` mounts [`nginx/ircub.waagefaal.so.conf`](nginx/ircub.waagefaal.so.conf)
+- From Windows: [`scripts/deploy_contabo.ps1`](../scripts/deploy_contabo.ps1)
+
 ## Layout
 
 ```text
 docker/
 ├── README.md
 ├── .env.app.example
+├── .env.app.contabo.example
+├── nginx/                 # Contabo SSI proxy server blocks
 ├── backend/
 │   ├── Dockerfile
-│   └── entrypoint.sh      # wait for DB → migrate/seed → exec
+│   └── entrypoint.sh
 └── frontend/
-    ├── Dockerfile         # Vite build → Nginx
-    └── nginx.conf         # SPA + /api proxy + CSP headers
+    ├── Dockerfile
+    └── nginx.conf
 ```
 
 ## Tests
 
-Automated tests run on the **host** (see [`docs/TESTING.md`](../docs/TESTING.md)).
+Automated tests run on the **host** (see [`docs/TESTING.md`](../docs/TESTING.md)). Last green: **44 / 192** PHPUnit · security **20 / 70** · performance **4 / 15**.
 
 ```bash
 cd backend

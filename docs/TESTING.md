@@ -117,3 +117,7 @@ Details: [`docker/README.md`](../docker/README.md).
 | PHPUnit | host: `cd backend && php artisan test` (not inside the image by default) |
 
 Smoke scripts need backend `.env` pointing at host Postgres (`127.0.0.1:5433`) and Redis (`127.0.0.1:6379`).
+
+## Hosted demo
+
+**https://ircub.waagefaal.so** — Contabo Docker stack; Swagger/docs off; seed-on-boot off. Quick check: SPA 200, `/api/auth/me` 401 without cookie, login with `admin@ircub.test`.

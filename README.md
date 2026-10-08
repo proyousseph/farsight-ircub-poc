@@ -8,11 +8,11 @@ Scope: **Modules 1–7** (POC brief calendar window: 5 working days)
 | Item | Link |
 |---|---|
 | Repository | https://github.com/proyousseph/farsight-ircub-poc |
-| Demo (planned) | https://ircub.waagefaal.so |
+| **Live demo** | https://ircub.waagefaal.so |
 
-> **Live demo:** https://ircub.waagefaal.so (Contabo `161.97.90.92`, behind `ssiwebsite-proxy` TLS).  
-> **Docker:** local `docker compose --profile app`; Contabo overlay `docker-compose.contabo.yml`.  
-> Demo login: `admin@ircub.test` / `Password@123` (must change password on first use).
+> Hosted on Contabo (`161.97.90.92`) behind existing `ssiwebsite-proxy` with Let’s Encrypt TLS.  
+> Local Docker: `docker compose --profile app` · Contabo: `docker-compose.contabo.yml` + [`docker/.env.app.contabo.example`](docker/.env.app.contabo.example).  
+> Demo login: `admin@ircub.test` / `Password@123` (**must change password** on first login).
 
 ---
 
@@ -39,7 +39,7 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 | Database | PostgreSQL 16 |
 | Cache / queues / sessions | Redis 7 (Predis client) |
 | Local infra | Docker Compose |
-| Hosted demo | Contabo VPS + subdomain `ircub.waagefaal.so` |
+| Hosted demo | Contabo VPS · https://ircub.waagefaal.so (Nginx TLS proxy) |
 
 ---
 
@@ -47,16 +47,19 @@ External systems (banks, mobile money, SMS, FX rates, FMIS) are **mocked**.
 
 ```text
 .
-├── frontend/              # React + Vite admin UI (IRCUB routes)
-├── backend/               # Laravel API + PHPUnit + smoke scripts
+├── frontend/                     # React + Vite admin UI (IRCUB routes)
+├── backend/                      # Laravel API + PHPUnit + smoke scripts
 ├── docker/
-│   ├── README.md          # Compose profiles, env, URLs
-│   ├── backend/           # API Dockerfile + entrypoint
-│   ├── frontend/          # SPA Nginx Dockerfile + reverse-proxy conf
-│   ├── .env.app.example   # Env for --profile app
-│   └── .env.app           # Local docker app env (gitignored if present)
-├── docs/                  # STACK, ERD, API, TESTING
-├── docker-compose.yml     # Postgres/Redis (+ optional full app profile)
+│   ├── README.md                 # Compose profiles, Contabo notes
+│   ├── backend/                  # API Dockerfile + entrypoint
+│   ├── frontend/                 # SPA Nginx Dockerfile + reverse-proxy conf
+│   ├── nginx/                    # Contabo SSI proxy snippet (ircub.waagefaal.so)
+│   ├── .env.app.example          # Local --profile app
+│   └── .env.app.contabo.example  # Production Contabo template
+├── scripts/                      # deploy_contabo.ps1 + remote helpers
+├── docs/                         # STACK, ERD, API, TESTING
+├── docker-compose.yml            # Postgres/Redis + app/tools profiles
+├── docker-compose.contabo.yml    # Join ircub-web to ssiwebsite_default network
 └── README.md
 ```
 
@@ -152,15 +155,15 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 - [x] Frontend **Executive Dashboard** replaces Dompet demo home (`/dashboard`)
 - [x] Verified with `backend/scripts/verify_module7.php` (12/12) + HTTP API checks
 
-### Deploy & polish — In progress
+### Deploy & polish — Done
 
 - [x] ERD — see [`docs/ERD.md`](docs/ERD.md)
-- [x] OpenAPI/Swagger + Postman — see [`docs/API.md`](docs/API.md), UI at `/docs/api`
+- [x] OpenAPI/Swagger + Postman — see [`docs/API.md`](docs/API.md), UI at `/docs/api` (local; **disabled** on Contabo)
 - [x] Automated tests (PHPUnit + module smoke scripts + security/TOTP/performance) — see [Testing](#testing)
-- [x] Security hardening (headers, throttle, cookie auth, TOTP, taxpayer scope)
+- [x] Security hardening (headers, throttle, cookie auth, TOTP, taxpayer scope, TrustProxies)
 - [x] Performance hardening (indexes, queues, scheduler, cache meta, lazy UI)
-- [x] Docker Compose **full app profile** (`api` + `queue` + `scheduler` + `web` on `:8080`)
-- [x] Contabo VPS deploy + HTTPS on [`ircub.waagefaal.so`](https://ircub.waagefaal.so) (behind `ssiwebsite-proxy`)
+- [x] Docker Compose **full app profile** (`api` + `queue` + `scheduler` + `web` on `127.0.0.1:8080`)
+- [x] Contabo HTTPS demo — https://ircub.waagefaal.so (Let’s Encrypt, behind `ssiwebsite-proxy`)
 
 ---
 
@@ -171,9 +174,9 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 | Technology stack notes | [`docs/STACK.md`](docs/STACK.md) |
 | Entity Relationship Diagram | [`docs/ERD.md`](docs/ERD.md) |
 | API (OpenAPI + Postman) | [`docs/API.md`](docs/API.md) · [`docs/openapi.yaml`](docs/openapi.yaml) |
-| Swagger UI (local) | http://127.0.0.1:8001/docs/api |
+| Swagger UI (local only) | http://127.0.0.1:8001/docs/api (`IRCUB_DOCS_ENABLED=true`) |
 | Testing guide | [`docs/TESTING.md`](docs/TESTING.md) · [Testing](#testing) in README |
-| Docker (compose profiles) | [`docker/README.md`](docker/README.md) |
+| Docker (local + Contabo) | [`docker/README.md`](docker/README.md) |
 
 ---
 
@@ -255,6 +258,21 @@ Stop:
 ```bash
 docker compose --profile app down
 ```
+
+### 5. Contabo / hosted demo (already deployed)
+
+Public URL: **https://ircub.waagefaal.so**
+
+| Piece | Location / note |
+|---|---|
+| App code | `/opt/ircub` on Contabo |
+| Stack | `docker compose --profile app -f docker-compose.yml -f docker-compose.contabo.yml` |
+| Env template | [`docker/.env.app.contabo.example`](docker/.env.app.contabo.example) |
+| TLS / edge | `ssiwebsite-proxy` + Let’s Encrypt (`ircub.waagefaal.so`) |
+| Nginx snippet | [`docker/nginx/ircub.waagefaal.so.conf`](docker/nginx/ircub.waagefaal.so.conf) |
+| Upload helper | [`scripts/deploy_contabo.ps1`](scripts/deploy_contabo.ps1) |
+
+Production flags on Contabo: `APP_ENV=production`, `APP_DEBUG=false`, `SESSION_SECURE_COOKIE=true`, `IRCUB_SEED_ON_BOOT=false`, `IRCUB_2FA_ALLOW_STUB=false`, `IRCUB_DOCS_ENABLED=false`, POC mocks (`CHANNEL_ALLOW_MOCK` / `FMIS_ALLOW_MOCK`) still on for the take-home demo.
 
 ---
 
