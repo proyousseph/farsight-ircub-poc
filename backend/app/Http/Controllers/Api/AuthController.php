@@ -90,6 +90,8 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'confirmed', PasswordPolicy::rule()],
         ]);
 
+        \App\Support\DemoAccounts::assertMutable($user);
+
         if (! Hash::check($data['current_password'], $user->password)) {
             throw ValidationException::withMessages([
                 'current_password' => ['Current password is incorrect.'],

@@ -7,7 +7,7 @@
   "variable": [
     { "key": "baseUrl", "value": "http://127.0.0.1:8001" },
     { "key": "token", "value": "" },
-    { "key": "origin", "value": "http://127.0.0.1:8001" }
+    { "key": "origin", "value": "http://localhost:5173" }
   ],
   "auth": {
     "type": "bearer",

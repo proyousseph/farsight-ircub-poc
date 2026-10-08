@@ -23,6 +23,7 @@ function toSessionPayload(user, extras = {}) {
     permissions: user.permissions || [],
     roles: user.roles || [],
     must_change_password: Boolean(user.must_change_password),
+    features: user.features || {},
     ...extras,
   };
 }
@@ -136,4 +137,9 @@ export function getStoredUser() {
 export function hasPermission(permission) {
   const stored = getStoredUser();
   return Array.isArray(stored?.permissions) && stored.permissions.includes(permission);
+}
+
+export function hasFeature(feature) {
+  const stored = getStoredUser();
+  return Boolean(stored?.features?.[feature] ?? stored?.user?.features?.[feature]);
 }

@@ -25,7 +25,15 @@ $taxpayer = User::query()->where('email', 'taxpayer@ircub.test')->first();
 $auditor = User::query()->where('email', 'auditor@ircub.test')->first();
 
 ok('TAXPAYER_LINKED', $taxpayer && $taxpayer->payer_id, 'payer_id='.($taxpayer->payer_id ?? 'null'));
-ok('AUDITOR_2FA_FLAG', $auditor && $auditor->two_factor_enabled, '2fa='.(($auditor->two_factor_enabled ?? false) ? '1' : '0'));
+// Stub 2FA is local/testing only; outside that, auditor TOTP is not forced on seed.
+$stubOn = (bool) config('ircub.two_factor.allow_stub');
+ok(
+    'AUDITOR_2FA_FLAG',
+    $stubOn ? ($auditor && $auditor->two_factor_enabled) : ($auditor !== null),
+    $stubOn
+        ? '2fa='.(($auditor->two_factor_enabled ?? false) ? '1' : '0')
+        : 'stub off — auditor present without forced stub 2FA'
+);
 
 $payer = Payer::query()->first();
 $payment = Payment::query()->create([

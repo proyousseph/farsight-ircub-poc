@@ -88,6 +88,17 @@ class UserAdminController extends Controller
             'role_ids.*' => ['integer', 'exists:roles,id'],
         ]);
 
+        // Hosted demo: block password / deactivation / role changes on @ircub.test.
+        if (\App\Support\DemoAccounts::skipPasswordChange() && \App\Support\DemoAccounts::isProtectedUser($user)) {
+            $locking = array_key_exists('password', $data) && filled($data['password'])
+                || (array_key_exists('is_active', $data) && ! $data['is_active'])
+                || isset($data['role_ids'])
+                || (array_key_exists('two_factor_enabled', $data) && ! $data['two_factor_enabled']);
+            if ($locking) {
+                \App\Support\DemoAccounts::assertMutable($user);
+            }
+        }
+
         if (isset($data['role_ids'])) {
             $this->assertAssignableRoles($request->user(), $data['role_ids']);
         }

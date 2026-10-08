@@ -42,5 +42,6 @@
         <env name="IRCUB_DOCS_ENABLED" value="true"/>
         <env name="IRCUB_AUTH_COOKIE_SAMESITE" value="lax"/>
         <env name="IRCUB_MAX_UNLINKED_PAYMENT" value="100000"/>
+        <env name="IRCUB_STATUS_CHECK_MIN_INTERVAL" value="0"/>
     </php>
 </phpunit>

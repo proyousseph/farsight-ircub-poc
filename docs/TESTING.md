@@ -55,10 +55,10 @@ Relevant test env flags (`phpunit.xml`):
 
 | Suite | Result |
 |---|---|
-| Full PHPUnit | **58 tests, 240 assertions** — passed |
+| Full PHPUnit | **59 tests, 245 assertions** — passed |
 | Security + cookie/TOTP | **30 tests, 96 assertions** — passed |
 | Performance | **4 tests, 15 assertions** — passed |
-| Smokes | Module 5 10/10 · Module 6 13/13 · Module 7 12/12 · Gaps 6/6 |
+| Smokes | Module 5 **11/11** · Module 6 13/13 · Module 7 12/12 · Gaps 6/6 |
 
 ## Security / auth checks I re-run after changes
 

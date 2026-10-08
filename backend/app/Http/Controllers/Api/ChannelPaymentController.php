@@ -178,6 +178,39 @@ class ChannelPaymentController extends Controller
         ]);
     }
 
+    public function demoSettle(Request $request, ChannelPayment $channelPayment): JsonResponse
+    {
+        if (! \App\Support\DemoAccounts::settleEnabled()) {
+            return response()->json(['message' => 'Demo settle is not enabled on this environment.'], 404);
+        }
+
+        if (! OwnsPayerScope::canAccessPayer(
+            $request->user(),
+            (int) $channelPayment->payer_id,
+            'payments.view',
+            'payments.view_own'
+        )) {
+            $user = $request->user();
+            $canPayOwn = $user?->hasPermission('payments.pay_own');
+            if (! ($canPayOwn && $user?->payer_id && (int) $user->payer_id === (int) $channelPayment->payer_id)) {
+                return response()->json(['message' => 'You do not have access to settle this channel payment.'], 403);
+            }
+        }
+
+        try {
+            $payment = $this->channels->demoSettle($channelPayment, $request->user()?->id);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => \App\Support\SafeHttpError::message($e, 'Unable to demo-settle channel payment.'),
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Demo settle applied (signed SUCCESS callback).',
+            'channel_payment' => SensitivePayload::channelPaymentPublic($payment->toArray()),
+        ]);
+    }
+
     public function retryDue(Request $request): JsonResponse
     {
         $sync = $request->boolean('sync', false);

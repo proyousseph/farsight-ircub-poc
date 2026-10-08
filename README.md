@@ -27,7 +27,7 @@ I built this POC as Yusuf Mohamed Ahmed. Scope is Modules 1–7 (the brief allow
 | Auditor | `auditor@ircub.test` |
 | Taxpayer | `taxpayer@ircub.test` |
 
-3. On first login you **must change the password** (security requirement).
+3. Hosted demo (`IRCUB_DEMO_SKIP_PASSWORD_CHANGE`): seeded `@ircub.test` accounts keep `Password@123` and password/role lockouts are blocked. Local Docker without that flag still forces a password change on first login.
 
 I host the live site on Contabo with HTTPS. Banks, mobile money, SMS, FX rates, and FMIS are **mocked** — there is no real money movement.
 
@@ -221,7 +221,7 @@ php scripts/verify_module7.php
 php scripts/verify_gaps.php
 ```
 
-Last smoke run: Module 5 **10/10** · Module 6 **13/13** · Module 7 **12/12** · Gaps **6/6**.
+Last smoke run: Module 5 **11/11** · Module 6 **13/13** · Module 7 **12/12** · Gaps **6/6**.
 
 Run everything:
 

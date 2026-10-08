@@ -14,9 +14,10 @@ COPY backend/composer.json backend/composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader
 
 COPY backend/ ./
-RUN composer dump-autoload --optimize \
-    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
-    && chmod -R ug+rwx storage bootstrap/cache
+# mkdir BEFORE dump-autoload: package:discover needs bootstrap/cache present/writable (D1).
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && chmod -R ug+rwx storage bootstrap/cache \
+    && composer dump-autoload --optimize
 
 COPY docker/backend/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

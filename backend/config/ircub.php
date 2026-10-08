@@ -52,4 +52,18 @@ return [
         'FMIS_ALLOW_MOCK',
         in_array(env('APP_ENV', 'production'), ['local', 'testing'], true)
     ),
+
+    /*
+    | Hosted demo helpers (Contabo). Keep false outside the take-home demo.
+    | demo_settle: server-side signed SUCCESS callback for mock channel payments.
+    | demo_skip_password_change: keep seeded Password@123 and lock @ircub.test mutations.
+    */
+    'demo_settle' => (bool) env('IRCUB_DEMO_SETTLE', false),
+    'demo_skip_password_change' => filter_var(
+        env('IRCUB_DEMO_SKIP_PASSWORD_CHANGE', false),
+        FILTER_VALIDATE_BOOL
+    ),
+
+    'status_check_min_interval_seconds' => (int) env('IRCUB_STATUS_CHECK_MIN_INTERVAL', 15),
 ];
+

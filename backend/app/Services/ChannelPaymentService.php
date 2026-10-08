@@ -230,6 +230,15 @@ class ChannelPaymentService
             return $channelPayment;
         }
 
+        $minInterval = (int) config('ircub.status_check_min_interval_seconds', 15);
+        if ($minInterval > 0
+            && $channelPayment->last_status_check_at
+            && $channelPayment->last_status_check_at->gt(now()->subSeconds($minInterval))) {
+            throw new \InvalidArgumentException(
+                "Please wait {$minInterval}s between status checks (avoids burning retries)."
+            );
+        }
+
         try {
             $statusPayload = $this->channel->status($channelPayment->provider_txn_id);
         } catch (\Throwable $e) {
@@ -280,6 +289,34 @@ class ChannelPaymentService
         });
     }
 
+    /**
+     * Hosted-demo helper: craft a signed SUCCESS callback locally so mock
+     * channel payments can settle when CHANNEL_ALLOW_SIMULATE is forced off.
+     */
+    public function demoSettle(ChannelPayment $channelPayment, ?int $userId = null): ChannelPayment
+    {
+        if (! \App\Support\DemoAccounts::settleEnabled()) {
+            throw new \RuntimeException('Demo settle is disabled.');
+        }
+
+        if (in_array($channelPayment->status, ['SUCCESS', 'PERMANENTLY_FAILED'], true)) {
+            return $channelPayment;
+        }
+
+        $payload = [
+            'provider_txn_id' => $channelPayment->provider_txn_id,
+            'external_ref' => $channelPayment->external_ref,
+            'status' => 'SUCCESS',
+            'amount' => (float) $channelPayment->amount_usd,
+            'timestamp' => time(),
+            'demo_settle' => true,
+        ];
+        $raw = json_encode($payload, JSON_UNESCAPED_SLASHES);
+        $sig = hash_hmac('sha256', (string) $raw, $this->resolveCallbackSecret());
+
+        return $this->handleCallback($payload, $sig, (string) $raw);
+    }
+
     public function processDueRetries(?int $userId = null): array
     {
         $due = ChannelPayment::query()
@@ -294,7 +331,12 @@ class ChannelPaymentService
 
         $processed = [];
         foreach ($due as $payment) {
-            $processed[] = $this->checkStatus($payment, $userId);
+            try {
+                $processed[] = $this->checkStatus($payment, $userId);
+            } catch (\InvalidArgumentException $e) {
+                // Skip throttle errors during batch retries.
+                continue;
+            }
         }
 
         return [

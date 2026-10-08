@@ -113,14 +113,57 @@ class ConfigurableRegistryTest extends TestCase
         $this->assertTrue($before['ok'], 'Leading unhashed rows should be skippable');
         $this->assertGreaterThanOrEqual(1, $before['skipped_unhashed'] ?? 0);
 
+        // Leading NULL before an already-hashed tip must not be rewritten into the chain.
         $backfill = \App\Models\AuditLog::backfillChain();
-        $this->assertGreaterThanOrEqual(2, $backfill['backfilled']);
+        $this->assertSame(0, $backfill['backfilled']);
+        $this->assertNull(\App\Models\AuditLog::query()->findOrFail($legacyId)->entry_hash);
 
-        $legacy = \App\Models\AuditLog::query()->findOrFail($legacyId);
-        $this->assertNotEmpty($legacy->entry_hash);
+        // Trailing unhashed row after the tip is filled.
+        $trailingId = \Illuminate\Support\Facades\DB::table('audit_logs')->insertGetId([
+            'entity_type' => 'Payer',
+            'entity_id' => 3,
+            'action' => 'TRAILING',
+            'user_id' => $admin->id,
+            'before_values' => null,
+            'after_values' => json_encode(['z' => 3]),
+            'ip_address' => '127.0.0.1',
+            'prev_hash' => null,
+            'entry_hash' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->assertSame(1, \App\Models\AuditLog::backfillChain()['backfilled']);
+        $this->assertNotEmpty(\App\Models\AuditLog::query()->findOrFail($trailingId)->entry_hash);
+        $this->assertTrue(\App\Models\AuditLog::verifyChain()['ok']);
 
-        $after = \App\Models\AuditLog::verifyChain();
-        $this->assertTrue($after['ok']);
-        $this->assertSame(0, $after['skipped_unhashed'] ?? 0);
+        // Tamper then backfill must NOT launder the change.
+        $hashed = \App\Models\AuditLog::query()->whereNotNull('entry_hash')->orderBy('id')->firstOrFail();
+        $hashed->forceFill(['action' => 'TAMPER'])->save();
+        $this->assertFalse(\App\Models\AuditLog::verifyChain()['ok']);
+        \App\Models\AuditLog::backfillChain();
+        $this->assertFalse(\App\Models\AuditLog::verifyChain()['ok'], 'Backfill must not rewrite existing hashes');
+    }
+
+    public function test_demo_settle_settles_pending_channel_payment(): void
+    {
+        config(['ircub.demo_settle' => true]);
+
+        $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();
+        $payer = Payer::query()->firstOrFail();
+        Sanctum::actingAs($officer);
+
+        $initiated = $this->postJson('/api/channel/payments', [
+            'payer_id' => $payer->id,
+            'revenue_code' => 'BIZLIC',
+            'channel' => 'BANK',
+            'amount' => 11,
+            'currency' => 'USD',
+            'simulate' => 'PENDING',
+        ])->assertCreated();
+
+        $id = $initiated->json('channel_payment.id');
+        $this->postJson('/api/channel/payments/'.$id.'/demo-settle')
+            ->assertOk()
+            ->assertJsonPath('channel_payment.status', 'SUCCESS');
     }
 }

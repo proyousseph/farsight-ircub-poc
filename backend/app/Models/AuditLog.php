@@ -89,8 +89,8 @@ class AuditLog extends Model
     }
 
     /**
-     * Backfill prev_hash/entry_hash for rows written before the chain existed.
-     * Recomputes a contiguous chain from the first row (genesis prev = 64 zeros).
+     * Backfill prev_hash/entry_hash only for rows that still lack a hash.
+     * Does NOT rewrite existing hashes (avoids laundering tampering — NEW-B).
      *
      * @return array{backfilled: int}
      */
@@ -102,10 +102,31 @@ class AuditLog extends Model
                 DB::statement('SELECT pg_advisory_xact_lock(?)', [0x49524355]);
             }
 
-            $prevHash = str_repeat('0', 64);
+            $lastHashed = static::query()
+                ->whereNotNull('entry_hash')
+                ->where('entry_hash', '!=', '')
+                ->orderByDesc('id')
+                ->lockForUpdate()
+                ->first();
+
+            // Leading unhashed rows (before the first hash) are left alone so
+            // verifyChain can skip them; filling them would fork a chain that
+            // already starts at genesis. Only append hashes after the tip.
+            $prevHash = $lastHashed?->entry_hash ?: str_repeat('0', 64);
             $count = 0;
 
-            foreach (static::query()->orderBy('id')->lockForUpdate()->cursor() as $row) {
+            $query = static::query()
+                ->where(function ($q) {
+                    $q->whereNull('entry_hash')->orWhere('entry_hash', '');
+                })
+                ->orderBy('id')
+                ->lockForUpdate();
+
+            if ($lastHashed) {
+                $query->where('id', '>', $lastHashed->id);
+            }
+
+            foreach ($query->cursor() as $row) {
                 $canonical = json_encode([
                     'entity_type' => $row->entity_type,
                     'entity_id' => (int) $row->entity_id,

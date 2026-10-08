@@ -237,7 +237,7 @@ class RolePermissionSeeder extends Seeder
                     // Force rotation except tests and hosted-demo opt-out (IRCUB_DEMO_SKIP_PASSWORD_CHANGE).
                     'must_change_password' => ! (
                         app()->environment('testing')
-                        || filter_var(env('IRCUB_DEMO_SKIP_PASSWORD_CHANGE', false), FILTER_VALIDATE_BOOL)
+                        || (bool) config('ircub.demo_skip_password_change', false)
                     ),
                     'email_verified_at' => now(),
                 ]

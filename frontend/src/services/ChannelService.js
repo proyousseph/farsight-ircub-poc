@@ -16,6 +16,10 @@ export function getChannelPayment(id) {
   return api.get(`/channel/payments/${id}`);
 }
 
+export function demoSettleChannelPayment(id) {
+  return apiClient.post(`/channel/payments/${id}/demo-settle`);
+}
+
 export function checkChannelPayment(id) {
   return api.post(`/channel/payments/${id}/check`);
 }

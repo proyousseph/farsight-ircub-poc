@@ -105,6 +105,10 @@ class User extends Authenticatable
                 ->pluck('slug')
                 ->unique()
                 ->values(),
+            'features' => [
+                'demo_settle' => \App\Support\DemoAccounts::settleEnabled(),
+                'demo_accounts_locked' => \App\Support\DemoAccounts::skipPasswordChange(),
+            ],
         ];
     }
 }

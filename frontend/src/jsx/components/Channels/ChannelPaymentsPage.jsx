@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listPayers } from '../../../services/PayerService';
 import { listAssessments, listRevenueTypes } from '../../../services/RevenueService';
-import { hasPermission } from '../../../services/AuthService';
+import { hasFeature, hasPermission } from '../../../services/AuthService';
 import {
   checkChannelPayment,
+  demoSettleChannelPayment,
   fetchChannelRate,
   initiateChannelPayment,
   listChannelPayments,
@@ -16,6 +17,7 @@ const ChannelPaymentsPage = () => {
   const canCapture = hasPermission('payments.capture') || hasPermission('payments.pay_own');
   const payOwnOnly = hasPermission('payments.pay_own') && !hasPermission('payments.capture');
   const canCheckStatus = hasPermission('payments.capture') || hasPermission('payments.pay_own') || hasPermission('payments.view') || hasPermission('payments.view_own');
+  const canDemoSettle = hasFeature('demo_settle') && canCapture;
   const canRetry = hasPermission('payments.approve_reversal') || hasPermission('payments.capture');
   const canSeeAlerts = hasPermission('payments.approve_reversal') || hasPermission('audit.view');
   const [items, setItems] = useState([]);
@@ -115,6 +117,18 @@ const ChannelPaymentsPage = () => {
       setError(err.response?.data?.message || 'Initiate failed.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const onDemoSettle = async (id) => {
+    setError('');
+    setInfo('');
+    try {
+      const { data } = await demoSettleChannelPayment(id);
+      setInfo(data.message || `Demo settle → ${data.channel_payment?.status}`);
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Demo settle failed.');
     }
   };
 
@@ -303,7 +317,10 @@ const ChannelPaymentsPage = () => {
                           <td>{p.retry_count}/{p.max_retries}</td>
                           <td>
                             {canCheckStatus && !['SUCCESS', 'PERMANENTLY_FAILED'].includes(p.status) && (
-                              <button className="btn btn-sm btn-outline-secondary" onClick={() => onCheck(p.id)}>Check</button>
+                              <button className="btn btn-sm btn-outline-secondary me-1" onClick={() => onCheck(p.id)}>Check</button>
+                            )}
+                            {canDemoSettle && !['SUCCESS', 'PERMANENTLY_FAILED'].includes(p.status) && (
+                              <button className="btn btn-sm btn-outline-success" onClick={() => onDemoSettle(p.id)}>Demo settle</button>
                             )}
                           </td>
                         </tr>
