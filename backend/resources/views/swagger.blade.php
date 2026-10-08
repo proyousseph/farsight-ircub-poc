@@ -30,7 +30,7 @@
     </div>
     <div>
       Spec: <a href="{{ url('/docs/openapi.yaml') }}">openapi.yaml</a>
-      · Demo users use password <code>Password@123</code>
+      · Demo logins: see project README (seeds force password change outside testing)
     </div>
   </div>
   <div id="swagger-ui"></div>

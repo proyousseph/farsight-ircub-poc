@@ -2,13 +2,15 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\AuthCookie;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Mitigate CSRF for cookie-authenticated browser requests.
- * Non-browser clients (no Origin/Referer) are allowed (API tools / tests).
+ * Bearer-only API clients (no auth cookie) may omit Origin/Referer.
+ * Cookie-authenticated mutating requests must present a trusted Origin or Referer.
  */
 class EnsureTrustedOrigin
 {
@@ -25,8 +27,16 @@ class EnsureTrustedOrigin
 
         $origin = $request->headers->get('Origin');
         $referer = $request->headers->get('Referer');
+        $hasCookieAuth = filled(AuthCookie::tokenFrom($request));
 
         if (! $origin && ! $referer) {
+            // Cookie sessions must send Origin/Referer; Bearer/API tools may omit both.
+            if ($hasCookieAuth) {
+                return response()->json([
+                    'message' => 'Trusted Origin or Referer required for cookie-authenticated requests.',
+                ], 403);
+            }
+
             return $next($request);
         }
 

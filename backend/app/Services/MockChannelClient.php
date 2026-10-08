@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Http\Controllers\MockApi\MockChannelController;
+use App\Support\MockProviderGuard;
 use Illuminate\Http\Request;
 
 class MockChannelClient
 {
     public function initiate(array $payload): array
     {
+        MockProviderGuard::assertChannelAllowed();
         $controller = app(MockChannelController::class);
         $response = $controller->initiatePayment(Request::create('/mock-api/payments', 'POST', $payload));
 
@@ -21,6 +23,7 @@ class MockChannelClient
 
     public function status(string $providerTxnId): array
     {
+        MockProviderGuard::assertChannelAllowed();
         $controller = app(MockChannelController::class);
         $response = $controller->paymentStatus($providerTxnId);
 
@@ -37,6 +40,7 @@ class MockChannelClient
 
     public function statement(string $date, string $channel, array $lines = []): array
     {
+        MockProviderGuard::assertChannelAllowed();
         $controller = app(MockChannelController::class);
         $response = $controller->statement(Request::create('/mock-api/statements', 'POST', [
             'date' => $date,

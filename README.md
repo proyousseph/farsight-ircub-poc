@@ -68,17 +68,20 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 
 ### Module 1 — User & Role Management — Done
 
-- [x] Docker Compose: PostgreSQL + Redis (+ pgAdmin / Redis Insight)
+- [x] Docker Compose: PostgreSQL + Redis; optional `--profile tools` (pgAdmin / Redis Insight); `--profile app` full stack
 - [x] Laravel configured for Postgres / Redis
 - [x] DB-driven roles & permissions
 - [x] Six system roles seeded with permissions
 - [x] Hierarchical roles (`parent_id` / `level`; child permissions ⊆ parent)
 - [x] System configuration API + UI (`config.manage` — password, 2FA, water threshold, channel retries)
 - [x] Sanctum auth API: login / logout / me / change password
-- [x] HttpOnly cookie auth (`ircub_token`) + Bearer header (same-site with Vite/`web`)
+- [x] Encrypted HttpOnly cookie auth (`ircub_token`); Bearer via `X-IRCUB-Return-Token: 1` only
 - [x] Password policy (min 10 + upper/lower/number/symbol) on user create/update (admin-tunable)
 - [x] Optional 2FA: **TOTP** setup/confirm/disable; local stub OTP `123456` only when `IRCUB_2FA_ALLOW_STUB=true`
 - [x] Security middleware: active-user check, must-change-password gate, trusted Origin, CSP/security headers, login throttle
+- [x] Role/permission changes revoke Sanctum tokens; audit/channel APIs redact sensitive payloads
+- [x] Unlinked payment amount cap (`IRCUB_MAX_UNLINKED_PAYMENT`)
+- [x] Mock channel/FMIS fail-closed outside local/testing unless `CHANNEL_ALLOW_MOCK` / `FMIS_ALLOW_MOCK`
 - [x] Users & Roles admin API + UI (custom roles, activate/deactivate users; 2FA enable requires confirmed TOTP)
 - [x] Payment reversal segregation of duties (request ≠ approve)
 - [x] Audit log browser API + UI
@@ -187,16 +190,18 @@ Progress follows the **document modules** (1–7). The brief’s take-home windo
 
 ```bash
 docker compose up -d
+# Optional admin UIs (not started by default):
+docker compose --profile tools up -d
 ```
 
 | Service | Host port | Notes |
 |---|---|---|
-| PostgreSQL | **5433** | Mapped away from local Postgres on 5432 |
+| PostgreSQL | **5433** | Always on with `docker compose up -d` |
 | Redis | **6379** | Cache, queues, sessions |
-| pgAdmin | **5050** | http://localhost:5050 |
-| Redis Insight | **5540** | http://localhost:5540 |
+| pgAdmin | **5050** | `--profile tools` only · http://localhost:5050 |
+| Redis Insight | **5540** | `--profile tools` only · http://localhost:5540 |
 
-**pgAdmin login:** `admin@example.com` / `admin123`
+**pgAdmin login:** `admin@example.com` / password from `PGADMIN_DEFAULT_PASSWORD` (default `change-me-pgadmin`).
 
 When adding a Postgres server in pgAdmin: host `postgres`, port `5432`, db/user/pass `ircub` / `ircub` / `ircub_secret`.
 
@@ -233,7 +238,7 @@ Full notes: [`docker/README.md`](docker/README.md).
 ```bash
 # From Project/
 cp docker/.env.app.example docker/.env.app
-# Set a stable APP_KEY in docker/.env.app (php artisan key:generate --show)
+# Set APP_KEY + CHANNEL_CALLBACK_SECRET (>=32 chars, not a mock default)
 docker compose --profile app up -d --build
 ```
 
@@ -276,8 +281,8 @@ php artisan test --filter=PerformanceHardeningTest
 
 | Suite | Last green |
 |---|---|
-| Full PHPUnit | **40 tests, 175 assertions** |
-| Security + cookie/TOTP | **16 tests, 53 assertions** |
+| Full PHPUnit | **43 tests, 189 assertions** |
+| Security + cookie/TOTP | **19 tests, 67 assertions** |
 | Performance | **4 tests, 15 assertions** |
 
 ### B) Module smoke scripts (needs Postgres + Redis)
@@ -332,7 +337,7 @@ Password for all accounts: **`Password@123`**
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `POST` | `/api/auth/login` | No (throttled) | Bearer token **and** HttpOnly `ircub_token` cookie |
+| `POST` | `/api/auth/login` | No (throttled) | Encrypted HttpOnly `ircub_token` cookie; Bearer only if `X-IRCUB-Return-Token: 1` |
 | `GET` | `/api/auth/me` | Bearer **or** cookie | Current user profile |
 | `POST` | `/api/auth/logout` | Yes | Revoke token + expire cookie |
 | `PUT` | `/api/auth/password` | Yes | Change password / clear must-change flag |
@@ -340,13 +345,23 @@ Password for all accounts: **`Password@123`**
 | `POST` | `/api/auth/2fa/confirm` | Yes | Confirm TOTP with a code |
 | `POST` | `/api/auth/2fa/disable` | Yes | Disable 2FA |
 
-Example login:
+Example login (cookie session for the SPA):
 
 ```bash
 curl -X POST http://localhost:8001/api/auth/login \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -c cookies.txt \
+  -d "{\"email\":\"admin@ircub.test\",\"password\":\"Password@123\"}"
+```
+
+API client that also needs the Bearer token in JSON:
+
+```bash
+curl -X POST http://localhost:8001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "X-IRCUB-Return-Token: 1" \
   -d "{\"email\":\"admin@ircub.test\",\"password\":\"Password@123\"}"
 ```
 
@@ -437,16 +452,18 @@ Channel retries API: `POST /api/channel/retries` queues on Redis, or processes i
 |---|---|
 | Auth cookie | Encrypted HttpOnly `ircub_token` (legacy base64 cookies rejected) |
 | Bearer opt-in | Header `X-IRCUB-Return-Token: 1` only (query/body `return_token` ignored) |
+| Cookie CSRF | Cookie-auth mutating requests require trusted Origin/Referer |
 | Active users | Deactivated accounts lose token access (`active` middleware) |
-| Role changes | User/role permission updates revoke Sanctum tokens |
-| Password gate | `must_change_password` blocks business APIs until password change |
+| Role / payer / 2FA | Role, payer link, or admin 2FA clear revokes Sanctum tokens |
+| Password gate | Seeded users must change password outside `testing`; blocks business APIs |
 | Taxpayer | No payment capture; own-scope on bills/assessments |
 | Unlinked payments | Cap via `IRCUB_MAX_UNLINKED_PAYMENT` (channel path uses USD after FX) |
-| Sensitive payloads | Audit / channel APIs redact secrets and strip provider blobs |
-| Channel callback | HMAC + throttle; empty identifiers rejected |
-| Headers | API CSP `default-src 'none'`; SPA meta CSP + tighten at reverse proxy |
+| Sensitive payloads | Channel audit rows strip provider blobs at write; list APIs omit `national_id` |
+| Channel callback | HMAC + throttle; SUCCESS requires matching `amount` |
+| Simulate / mocks | Simulate forced off outside local/testing; mock adapters fail closed without `CHANNEL_ALLOW_MOCK` / `FMIS_ALLOW_MOCK` |
+| Headers | API CSP `default-src 'none'`; Docker SPA CSP without `unsafe-eval` |
 | Mocks / docs | `/mock-api` and Swagger limited to local/testing unless enabled |
-| Login throttle | `10/min` on `/api/auth/login` |
+| Throttle | Login `10/min`, callback `60/min`, password/2FA `5–10/min`, CSV upload & channel retries `10/min` |
 
 ---
 
@@ -460,7 +477,8 @@ Channel retries API: `POST /api/channel/retries` queues on Redis, or processes i
 - Only sandbox / test data is used — no real personal, taxpayer, or financial data.
 - **TOTP** is the real 2FA path; stub OTP `123456` is **local/testing only** (`IRCUB_2FA_ALLOW_STUB`).
 - Live frontend routes are IRCUB-only.
-- Docker `--profile app` serves the full stack on `:8080`; Contabo HTTPS TLS termination is still the final deploy step.
+- Docker: infra by default; `--profile tools` for admin UIs; `--profile app` full stack on `:8080`. Contabo HTTPS is still the final deploy step.
+- Mock channel/FMIS adapters are POC-only (`CHANNEL_ALLOW_MOCK` / `FMIS_ALLOW_MOCK`); fail closed outside local/testing.
 - Bill notifications are queued (`NotifyWaterBillJob`); with `QUEUE_CONNECTION=sync` they still run inline for tests/demo.
 
 ---

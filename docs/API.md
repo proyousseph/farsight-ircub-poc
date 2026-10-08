@@ -40,8 +40,12 @@ Also:
 - `must_change_password` blocks business routes until `PUT /api/auth/password`
 - TOTP 2FA: `POST /api/auth/2fa/setup` → `confirm` (stub OTP only when `IRCUB_2FA_ALLOW_STUB=true`)
 - Channel payment list/show/retry responses omit `initiate_payload`, `callback_payload`, and `status_history`
-- Audit log `before_values` / `after_values` are redacted for secrets and provider blobs
+- Channel audit writes strip provider blobs; list/read paths also redact secrets
+- Payer **list** never returns `national_id` / `notes` (use show with `payers.view`)
 - Unlinked payments capped by `IRCUB_MAX_UNLINKED_PAYMENT` (USD after FX for channel initiate)
+- SUCCESS channel callbacks must include `amount` matching the initiated USD amount
+- Mock channel/FMIS adapters require `CHANNEL_ALLOW_MOCK` / `FMIS_ALLOW_MOCK` (default on only in local/testing)
+- Admin clearing another user’s 2FA requires `admin_password` (actor password)
 
 ### Import into Postman
 

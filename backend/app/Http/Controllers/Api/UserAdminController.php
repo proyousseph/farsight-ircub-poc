@@ -82,6 +82,7 @@ class UserAdminController extends Controller
             'password' => ['nullable', 'string', PasswordPolicy::rule()],
             'is_active' => ['sometimes', 'boolean'],
             'two_factor_enabled' => ['sometimes', 'boolean'],
+            'admin_password' => ['nullable', 'string'],
             'payer_id' => ['nullable', 'exists:payers,id'],
             'role_ids' => ['sometimes', 'array', 'min:1'],
             'role_ids.*' => ['integer', 'exists:roles,id'],
@@ -92,6 +93,19 @@ class UserAdminController extends Controller
         }
 
         $wasActive = (bool) $user->is_active;
+        $originalPayerId = $user->payer_id;
+        $clearingTwoFactor = array_key_exists('two_factor_enabled', $data)
+            && ! $data['two_factor_enabled']
+            && ($user->two_factor_enabled || $user->two_factor_secret || $user->two_factor_confirmed_at);
+
+        if ($clearingTwoFactor) {
+            $actor = $request->user();
+            if (! $actor || empty($data['admin_password']) || ! Hash::check($data['admin_password'], $actor->password)) {
+                throw ValidationException::withMessages([
+                    'admin_password' => 'Your password is required to disable another user\'s two-factor authentication.',
+                ]);
+            }
+        }
 
         if (array_key_exists('two_factor_enabled', $data) && $data['two_factor_enabled'] && ! $user->two_factor_confirmed_at) {
             throw ValidationException::withMessages([
@@ -109,9 +123,10 @@ class UserAdminController extends Controller
                 $user->{$field} = $data[$field];
             }
         }
-        if (array_key_exists('two_factor_enabled', $data) && ! $data['two_factor_enabled']) {
+        if ($clearingTwoFactor) {
             $user->two_factor_secret = null;
             $user->two_factor_confirmed_at = null;
+            $user->two_factor_enabled = false;
         }
         $user->save();
 
@@ -121,7 +136,11 @@ class UserAdminController extends Controller
             $rolesChanged = true;
         }
 
-        if ($rolesChanged || ($wasActive && array_key_exists('is_active', $data) && ! $data['is_active'])) {
+        $payerChanged = array_key_exists('payer_id', $data)
+            && (int) ($originalPayerId ?? 0) !== (int) ($data['payer_id'] ?? 0);
+
+        if ($rolesChanged || $payerChanged || $clearingTwoFactor
+            || ($wasActive && array_key_exists('is_active', $data) && ! $data['is_active'])) {
             $user->tokens()->delete();
         }
 

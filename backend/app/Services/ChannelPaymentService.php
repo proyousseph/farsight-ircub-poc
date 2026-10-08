@@ -114,7 +114,14 @@ class ChannelPaymentService
                 $this->maybeMarkPermanent($channelPayment, $userId);
             }
 
-            AuditLog::record('ChannelPayment', $channelPayment->id, 'INITIATED', null, $channelPayment->toArray(), $userId);
+            AuditLog::record(
+                'ChannelPayment',
+                $channelPayment->id,
+                'INITIATED',
+                null,
+                \App\Support\SensitivePayload::channelPaymentPublic($channelPayment->toArray()),
+                $userId
+            );
 
             return $channelPayment->fresh(['payer', 'assessment', 'waterBill', 'payment', 'exchangeRate']);
         });
@@ -172,18 +179,31 @@ class ChannelPaymentService
                 return $channelPayment;
             }
 
-            if (isset($payload['amount']) && is_numeric($payload['amount'])) {
+            $status = strtoupper((string) ($payload['status'] ?? 'PENDING'));
+            if (! in_array($status, ['SUCCESS', 'FAILED', 'PENDING'], true)) {
+                $status = 'PENDING';
+            }
+
+            // SUCCESS callbacks must prove amount integrity (not optional).
+            if ($status === 'SUCCESS') {
+                if (! isset($payload['amount']) || ! is_numeric($payload['amount'])) {
+                    throw new \InvalidArgumentException('SUCCESS callback must include a numeric amount.');
+                }
+                $reported = (float) $payload['amount'];
+                if (abs($reported - (float) $channelPayment->amount_usd) > 0.009) {
+                    throw new \InvalidArgumentException('Callback amount does not match the initiated payment.');
+                }
+            } elseif (isset($payload['amount']) && is_numeric($payload['amount'])) {
                 $reported = (float) $payload['amount'];
                 if (abs($reported - (float) $channelPayment->amount_usd) > 0.009) {
                     throw new \InvalidArgumentException('Callback amount does not match the initiated payment.');
                 }
             }
 
-            $before = $channelPayment->toArray();
+            $before = \App\Support\SensitivePayload::channelPaymentPublic($channelPayment->toArray());
             $channelPayment->callback_payload = $this->redactPayload($payload);
             $channelPayment->callback_verified = true;
-            $status = strtoupper((string) ($payload['status'] ?? 'PENDING'));
-            $channelPayment->status = in_array($status, ['SUCCESS', 'FAILED', 'PENDING'], true) ? $status : 'PENDING';
+            $channelPayment->status = $status;
             $channelPayment->pushHistory('CALLBACK', ['payload' => $this->redactPayload($payload)]);
             $channelPayment->save();
 
@@ -195,7 +215,13 @@ class ChannelPaymentService
                 $this->maybeMarkPermanent($channelPayment);
             }
 
-            AuditLog::record('ChannelPayment', $channelPayment->id, 'CALLBACK', $before, $channelPayment->fresh()->toArray());
+            AuditLog::record(
+                'ChannelPayment',
+                $channelPayment->id,
+                'CALLBACK',
+                $before,
+                \App\Support\SensitivePayload::channelPaymentPublic($channelPayment->fresh()->toArray())
+            );
 
             return $channelPayment->fresh(['payment', 'payer']);
         });
@@ -224,7 +250,7 @@ class ChannelPaymentService
                 return $channelPayment;
             }
 
-            $before = $channelPayment->toArray();
+            $before = \App\Support\SensitivePayload::channelPaymentPublic($channelPayment->toArray());
             $channelPayment->last_status_check_at = now();
             $status = strtoupper((string) ($statusPayload['status'] ?? 'PENDING'));
             $channelPayment->pushHistory('STATUS_CHECK', ['payload' => $this->redactPayload($statusPayload)]);
@@ -247,7 +273,14 @@ class ChannelPaymentService
                 $this->maybeMarkPermanent($channelPayment, $userId);
             }
 
-            AuditLog::record('ChannelPayment', $channelPayment->id, 'STATUS_CHECK', $before, $channelPayment->fresh()->toArray(), $userId);
+            AuditLog::record(
+                'ChannelPayment',
+                $channelPayment->id,
+                'STATUS_CHECK',
+                $before,
+                \App\Support\SensitivePayload::channelPaymentPublic($channelPayment->fresh()->toArray()),
+                $userId
+            );
 
             return $channelPayment->fresh(['payment', 'payer']);
         });
@@ -278,7 +311,7 @@ class ChannelPaymentService
 
     private function registerFailedCheck(ChannelPayment $channelPayment, string $reason, ?int $userId = null): ChannelPayment
     {
-        $before = $channelPayment->toArray();
+        $before = \App\Support\SensitivePayload::channelPaymentPublic($channelPayment->toArray());
         $channelPayment->retry_count = (int) $channelPayment->retry_count + 1;
         $channelPayment->last_status_check_at = now();
         $channelPayment->failure_reason = $reason;
@@ -287,7 +320,14 @@ class ChannelPaymentService
         $channelPayment->pushHistory('STATUS_CHECK_ERROR', ['reason' => $reason]);
         $channelPayment->save();
         $this->maybeMarkPermanent($channelPayment, $userId);
-        AuditLog::record('ChannelPayment', $channelPayment->id, 'STATUS_CHECK_ERROR', $before, $channelPayment->toArray(), $userId);
+        AuditLog::record(
+            'ChannelPayment',
+            $channelPayment->id,
+            'STATUS_CHECK_ERROR',
+            $before,
+            \App\Support\SensitivePayload::channelPaymentPublic($channelPayment->toArray()),
+            $userId
+        );
 
         return $channelPayment->fresh();
     }

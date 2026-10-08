@@ -31,10 +31,14 @@ Route::prefix('auth')->group(function () {
     Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('logout', [AuthController::class, 'logout']);
-        Route::put('password', [AuthController::class, 'changePassword']);
-        Route::post('2fa/setup', [AuthController::class, 'setupTwoFactor']);
-        Route::post('2fa/confirm', [AuthController::class, 'confirmTwoFactor']);
-        Route::post('2fa/disable', [AuthController::class, 'disableTwoFactor']);
+        Route::put('password', [AuthController::class, 'changePassword'])
+            ->middleware('throttle:5,1');
+        Route::post('2fa/setup', [AuthController::class, 'setupTwoFactor'])
+            ->middleware('throttle:5,1');
+        Route::post('2fa/confirm', [AuthController::class, 'confirmTwoFactor'])
+            ->middleware('throttle:10,1');
+        Route::post('2fa/disable', [AuthController::class, 'disableTwoFactor'])
+            ->middleware('throttle:5,1');
     });
 });
 
@@ -70,7 +74,7 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
     Route::post('payments', [PaymentController::class, 'store'])
         ->middleware('permission:payments.capture');
     Route::post('payments/upload', [PaymentController::class, 'upload'])
-        ->middleware('permission:payments.capture');
+        ->middleware(['permission:payments.capture', 'throttle:10,1']);
     Route::post('payments/{payment}/reversal-request', [PaymentController::class, 'requestReversal'])
         ->middleware('permission:payments.request_reversal');
     Route::post('payments/{payment}/reversal-approve', [PaymentController::class, 'approveReversal'])
@@ -86,7 +90,7 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
     Route::post('meter-readings', [MeterReadingController::class, 'store'])
         ->middleware('permission:meters.capture');
     Route::post('meter-readings/upload', [MeterReadingController::class, 'upload'])
-        ->middleware('permission:meters.capture');
+        ->middleware(['permission:meters.capture', 'throttle:10,1']);
 
     Route::get('billing-cycles', [BillingCycleController::class, 'index'])
         ->middleware('permission:billing.run|bills.view');
@@ -118,7 +122,7 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
     Route::post('channel/payments/{channelPayment}/check', [ChannelPaymentController::class, 'check'])
         ->middleware('permission:payments.capture|payments.approve_reversal');
     Route::post('channel/retries', [ChannelPaymentController::class, 'retryDue'])
-        ->middleware('permission:payments.approve_reversal|payments.capture');
+        ->middleware(['permission:payments.approve_reversal|payments.capture', 'throttle:10,1']);
     Route::get('channel/notifications', [ChannelPaymentController::class, 'notifications'])
         ->middleware('permission:payments.approve_reversal|audit.view');
 

@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Http\Controllers\MockApi\MockFmisController;
+use App\Support\MockProviderGuard;
 use Illuminate\Http\Request;
 
 class MockFmisClient
 {
     public function postJournal(array $payload): array
     {
+        MockProviderGuard::assertFmisAllowed();
         $controller = app(MockFmisController::class);
         $response = $controller->postJournal(Request::create('/mock-api/fmis/journals', 'POST', $payload));
         $data = $response->getData(true);
@@ -22,6 +24,7 @@ class MockFmisClient
 
     public function journalsByDate(string $date): array
     {
+        MockProviderGuard::assertFmisAllowed();
         $controller = app(MockFmisController::class);
         $response = $controller->journalsByDate(Request::create('/mock-api/fmis/journals', 'GET', [
             'date' => $date,
@@ -32,6 +35,7 @@ class MockFmisClient
 
     public function reverseJournal(string $batchNumber, string $journalDate): array
     {
+        MockProviderGuard::assertFmisAllowed();
         $controller = app(MockFmisController::class);
         $response = $controller->reverseJournal(Request::create('/mock-api/fmis/journals/reverse', 'POST', [
             'batch_number' => $batchNumber,

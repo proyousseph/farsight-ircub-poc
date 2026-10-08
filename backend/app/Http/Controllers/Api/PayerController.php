@@ -25,6 +25,14 @@ class PayerController extends Controller
             ->latest()
             ->paginate(\App\Support\Pagination::perPage($request));
 
+        // List never returns national_id / notes — use show() with payers.view for full PII.
+        $payers->getCollection()->transform(function (Payer $payer) {
+            $row = $payer->toArray();
+            unset($row['national_id'], $row['notes']);
+
+            return $row;
+        });
+
         return response()->json($payers);
     }
 

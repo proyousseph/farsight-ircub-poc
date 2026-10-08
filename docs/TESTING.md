@@ -23,7 +23,7 @@ See also the **Testing** section in the root [`README.md`](../README.md).
 |---|---|
 | `AuthApiTest.php` | Login / me / logout |
 | `CookieAuthAndTotpTest.php` | HttpOnly cookie auth, TOTP setup/confirm/login, security headers, taxpayer seed |
-| `SecurityHardeningTest.php` | Taxpayer payment forbid, deactivated tokens, PDF owner scope, callback IDs, must-change-password |
+| `SecurityHardeningTest.php` | Taxpayer forbid, deactivated tokens, PDF scope, callback amount/IDs, must-change-password, role token revoke, unlinked cap, audit redact, channel strip, national_id omit, admin 2FA clear password |
 | `PerformanceHardeningTest.php` | Pagination cap, indexes/list queries, queue job dispatch, sync retries |
 | `PayerApiTest.php` | Registry create/list/duplicates |
 | `FmisApiTest.php` | Journal create/post/reverse/recon |
@@ -42,19 +42,21 @@ See also the **Testing** section in the root [`README.md`](../README.md).
 
 Uses in-memory SQLite + `QUEUE_CONNECTION=sync` + `CACHE_STORE=array`.
 
-Relevant test env flags:
+Relevant test env flags (`phpunit.xml`):
 
-- `CHANNEL_ALLOW_SIMULATE=true`
+- `CHANNEL_ALLOW_SIMULATE=true` / `CHANNEL_ALLOW_MOCK=true` / `FMIS_ALLOW_MOCK=true`
 - `CHANNEL_CALLBACK_SECRET=ircub-mock-callback-secret`
 - `IRCUB_2FA_ENABLED=true` / `IRCUB_2FA_ALLOW_STUB=true` / `IRCUB_DEMO_OTP=123456`
 - `IRCUB_DOCS_ENABLED=true`
+- `IRCUB_AUTH_COOKIE_SAMESITE=lax`
+- `IRCUB_MAX_UNLINKED_PAYMENT=100000`
 
 ## Last known green run
 
 | Suite | Result |
 |---|---|
-| Full PHPUnit | **40 tests, 175 assertions** — passed |
-| Security + cookie/TOTP | **16 tests, 53 assertions** — passed |
+| Full PHPUnit | **43 tests, 189 assertions** — passed |
+| Security + cookie/TOTP | **19 tests, 67 assertions** — passed |
 | Performance | **4 tests, 15 assertions** — passed |
 | Smokes | Module 5 10/10 · Module 6 13/13 · Module 7 12/12 · Gaps 6/6 |
 
@@ -79,6 +81,9 @@ What those suites prove:
 | Unlinked payment amount cap | `SecurityHardeningTest` |
 | Audit log redacts sensitive keys | `SecurityHardeningTest` |
 | Channel list strips provider payloads | `SecurityHardeningTest` |
+| SUCCESS callback requires amount | `SecurityHardeningTest` |
+| Payer list omits national_id | `SecurityHardeningTest` |
+| Admin 2FA clear needs admin_password | `SecurityHardeningTest` |
 | Water bill PDF owner scope | `SecurityHardeningTest` |
 | Callback rejects empty identifiers | `SecurityHardeningTest` |
 | Must-change-password gate | `SecurityHardeningTest` |
@@ -93,18 +98,12 @@ HTTP smoke (API running on `:8001` or Docker `:8080`):
 
 ## Docker full stack
 
-Infra only (Postgres/Redis/pgAdmin/Redis Insight):
-
 ```bash
-docker compose up -d
-```
-
-Full app (API + queue + scheduler + Nginx SPA on **:8080**):
-
-```bash
+docker compose up -d                              # Postgres + Redis
+docker compose --profile tools up -d              # optional pgAdmin + Redis Insight
 cp docker/.env.app.example docker/.env.app
-# set APP_KEY in docker/.env.app  (php artisan key:generate --show)
-docker compose --profile app up -d --build
+# set APP_KEY + CHANNEL_CALLBACK_SECRET
+docker compose --profile app up -d --build        # API + queue + scheduler + web :8080
 ```
 
 Details: [`docker/README.md`](../docker/README.md).

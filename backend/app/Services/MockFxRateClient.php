@@ -4,12 +4,14 @@ namespace App\Services;
 
 use App\Http\Controllers\MockApi\MockChannelController;
 use App\Models\ExchangeRate;
+use App\Support\MockProviderGuard;
 use Illuminate\Http\Request;
 
 class MockFxRateClient
 {
     public function fetch(string $quoteCurrency = 'SOS', string $baseCurrency = 'USD'): ExchangeRate
     {
+        MockProviderGuard::assertChannelAllowed();
         // In-process call avoids deadlock on PHP's single-threaded built-in server.
         $controller = app(MockChannelController::class);
         $response = $controller->rates(Request::create('/mock-api/rates', 'GET', [

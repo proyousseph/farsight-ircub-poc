@@ -1,5 +1,6 @@
 # IRCUB local stack
-#   docker compose up -d                         → Postgres + Redis (+ admin UIs)
+#   docker compose up -d                         → Postgres + Redis
+#   docker compose --profile tools up -d         → + pgAdmin :5050, Redis Insight :5540
 #   docker compose --profile app up -d --build   → + API, queue, scheduler, web :8080
 # See docker/README.md
 
@@ -37,13 +38,16 @@ services:
       timeout: 5s
       retries: 5
 
+  # Optional admin UIs — not started by default (reduces accidental exposure).
+  #   docker compose --profile tools up -d
   pgadmin:
+    profiles: ["tools"]
     image: dpage/pgadmin4:8
     container_name: ircub-pgadmin
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-change-me-pgadmin}
       PGADMIN_CONFIG_SERVER_MODE: "False"
     ports:
       - "5050:80"
@@ -54,6 +58,7 @@ services:
       - pgadmin_data:/var/lib/pgadmin
 
   redis-insight:
+    profiles: ["tools"]
     image: redis/redisinsight:latest
     container_name: ircub-redis-insight
     restart: unless-stopped
@@ -101,9 +106,13 @@ services:
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: redis
-      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-ircub-docker-callback-secret-change-me}
+      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-}
       CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-true}
+      CHANNEL_ALLOW_MOCK: ${CHANNEL_ALLOW_MOCK:-true}
+      FMIS_ALLOW_MOCK: ${FMIS_ALLOW_MOCK:-true}
       CHANNEL_MOCK_BASE_URL: http://api:8000/mock-api
+      IRCUB_AUTH_COOKIE_SAMESITE: ${IRCUB_AUTH_COOKIE_SAMESITE:-lax}
+      IRCUB_MAX_UNLINKED_PAYMENT: ${IRCUB_MAX_UNLINKED_PAYMENT:-100000}
       IRCUB_2FA_ENABLED: ${IRCUB_2FA_ENABLED:-true}
       IRCUB_2FA_ALLOW_STUB: ${IRCUB_2FA_ALLOW_STUB:-true}
       IRCUB_DEMO_OTP: ${IRCUB_DEMO_OTP:-123456}
@@ -145,8 +154,10 @@ services:
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: redis
-      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-ircub-docker-callback-secret-change-me}
+      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-}
       CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-true}
+      CHANNEL_ALLOW_MOCK: ${CHANNEL_ALLOW_MOCK:-true}
+      FMIS_ALLOW_MOCK: ${FMIS_ALLOW_MOCK:-true}
       CHANNEL_MOCK_BASE_URL: http://api:8000/mock-api
       IRCUB_SEED_ON_BOOT: "false"
       IRCUB_RUN_MIGRATIONS: "false"
@@ -181,8 +192,10 @@ services:
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: redis
-      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-ircub-docker-callback-secret-change-me}
+      CHANNEL_CALLBACK_SECRET: ${CHANNEL_CALLBACK_SECRET:-}
       CHANNEL_ALLOW_SIMULATE: ${CHANNEL_ALLOW_SIMULATE:-true}
+      CHANNEL_ALLOW_MOCK: ${CHANNEL_ALLOW_MOCK:-true}
+      FMIS_ALLOW_MOCK: ${FMIS_ALLOW_MOCK:-true}
       CHANNEL_MOCK_BASE_URL: http://api:8000/mock-api
       IRCUB_SEED_ON_BOOT: "false"
       IRCUB_RUN_MIGRATIONS: "false"

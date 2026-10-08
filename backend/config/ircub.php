@@ -43,4 +43,13 @@ return [
         'IRCUB_DOCS_ENABLED',
         in_array(env('APP_ENV', 'production'), ['local', 'testing'], true)
     ),
+
+    /*
+    | In-process MockFmisClient. Fail closed outside local/testing unless
+    | FMIS_ALLOW_MOCK=true (POC acknowledgment).
+    */
+    'allow_mock_fmis' => (bool) env(
+        'FMIS_ALLOW_MOCK',
+        in_array(env('APP_ENV', 'production'), ['local', 'testing'], true)
+    ),
 ];

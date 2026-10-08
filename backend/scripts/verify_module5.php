@@ -77,6 +77,7 @@ $payload = [
     'provider_txn_id' => $cbPending->provider_txn_id,
     'external_ref' => $cbPending->external_ref,
     'status' => 'SUCCESS',
+    'amount' => (float) $cbPending->amount_usd,
     'timestamp' => time(),
 ];
 $rawBody = json_encode($payload, JSON_UNESCAPED_SLASHES);

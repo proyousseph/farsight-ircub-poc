@@ -114,6 +114,103 @@ class SecurityHardeningTest extends TestCase
         )->assertUnauthorized();
     }
 
+    public function test_success_callback_requires_amount(): void
+    {
+        $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();
+        $payer = Payer::query()->firstOrFail();
+
+        $cp = \App\Models\ChannelPayment::query()->create([
+            'payer_id' => $payer->id,
+            'revenue_code' => 'BIZLIC',
+            'channel' => 'BANK',
+            'amount_usd' => 25,
+            'amount_local' => 25,
+            'local_currency' => 'USD',
+            'fx_rate' => 1,
+            'external_ref' => 'SEC-CB-AMT-'.uniqid(),
+            'provider_txn_id' => 'PTX-'.uniqid(),
+            'status' => 'PENDING',
+            'created_by' => $officer->id,
+        ]);
+
+        $payload = [
+            'provider_txn_id' => $cp->provider_txn_id,
+            'external_ref' => $cp->external_ref,
+            'status' => 'SUCCESS',
+            'timestamp' => time(),
+        ];
+        $raw = json_encode($payload, JSON_UNESCAPED_SLASHES);
+        $sig = hash_hmac('sha256', $raw, config('channels.callback_secret'));
+
+        $this->call(
+            'POST',
+            '/api/channel/callback',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X-Channel-Signature' => $sig,
+            ],
+            $raw
+        )->assertStatus(401);
+
+        $payload['amount'] = 25;
+        $raw = json_encode($payload, JSON_UNESCAPED_SLASHES);
+        $sig = hash_hmac('sha256', $raw, config('channels.callback_secret'));
+
+        $this->call(
+            'POST',
+            '/api/channel/callback',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X-Channel-Signature' => $sig,
+            ],
+            $raw
+        )->assertOk();
+    }
+
+    public function test_payer_index_omits_national_id(): void
+    {
+        $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();
+        Sanctum::actingAs($officer);
+
+        $res = $this->getJson('/api/payers')->assertOk();
+        $rows = $res->json('data') ?? [];
+        $this->assertNotEmpty($rows);
+        foreach ($rows as $row) {
+            $this->assertArrayNotHasKey('national_id', $row);
+            $this->assertArrayNotHasKey('notes', $row);
+        }
+    }
+
+    public function test_admin_clearing_2fa_requires_admin_password(): void
+    {
+        $admin = User::query()->where('email', 'admin@ircub.test')->firstOrFail();
+        $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();
+        $officer->two_factor_enabled = true;
+        $officer->two_factor_secret = 'TESTSECRET123456';
+        $officer->two_factor_confirmed_at = now();
+        $officer->save();
+
+        Sanctum::actingAs($admin);
+        $this->putJson('/api/users/'.$officer->id, [
+            'two_factor_enabled' => false,
+        ])->assertStatus(422);
+
+        $this->putJson('/api/users/'.$officer->id, [
+            'two_factor_enabled' => false,
+            'admin_password' => 'Password@123',
+        ])->assertOk();
+
+        $officer->refresh();
+        $this->assertFalse((bool) $officer->two_factor_enabled);
+        $this->assertNull($officer->two_factor_secret);
+    }
+
     public function test_must_change_password_blocks_business_routes(): void
     {
         $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();

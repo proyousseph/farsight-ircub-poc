@@ -118,7 +118,13 @@ class AssessmentController extends Controller
                 ->where('entity_id', $assessment->id)
                 ->latest()
                 ->limit(50)
-                ->get();
+                ->get()
+                ->map(function (AuditLog $log) {
+                    $log->before_values = \App\Support\SensitivePayload::redact($log->before_values);
+                    $log->after_values = \App\Support\SensitivePayload::redact($log->after_values);
+
+                    return $log;
+                });
         }
 
         return response()->json($payload);

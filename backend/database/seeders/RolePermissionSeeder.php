@@ -223,18 +223,27 @@ class RolePermissionSeeder extends Seeder
 
         foreach ($demoUsers as $demo) {
             /** @var User $user */
-            $user = User::query()->updateOrCreate(
+            $user = User::query()->firstOrCreate(
                 ['email' => $demo['email']],
                 [
                     'name' => $demo['name'],
                     'phone' => '25261'.fake()->numerify('#######'),
                     'password' => Hash::make('Password@123'),
                     'is_active' => true,
-                    // Force rotation outside local/testing when seeds are reused.
-                    'must_change_password' => ! app()->environment(['local', 'testing']),
+                    // Shared demo password — force rotation everywhere except automated tests.
+                    'must_change_password' => ! app()->environment('testing'),
                     'email_verified_at' => now(),
                 ]
             );
+
+            // Re-seed must not reset passwords (preserves post-change credentials across boots).
+            if (! $user->wasRecentlyCreated) {
+                $user->forceFill([
+                    'name' => $demo['name'],
+                    'is_active' => true,
+                    'email_verified_at' => $user->email_verified_at ?? now(),
+                ])->save();
+            }
 
             $roleId = Role::query()->where('slug', $demo['role'])->value('id');
             $user->roles()->sync([$roleId]);
