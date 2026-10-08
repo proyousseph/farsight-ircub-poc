@@ -125,4 +125,95 @@ class SecurityHardeningTest extends TestCase
         $this->getJson('/api/payers')->assertForbidden()->assertJsonPath('must_change_password', true);
         $this->getJson('/api/auth/me')->assertOk();
     }
+
+    public function test_role_change_revokes_user_tokens(): void
+    {
+        $admin = User::query()->where('email', 'admin@ircub.test')->firstOrFail();
+        $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();
+        $adminToken = $admin->createToken('admin')->plainTextToken;
+        $officerToken = $officer->createToken('officer')->plainTextToken;
+        $roleIds = $officer->roles()->pluck('roles.id')->all();
+
+        $this->withToken($adminToken)
+            ->putJson('/api/users/'.$officer->id, [
+                'role_ids' => array_map('intval', $roleIds),
+                'name' => $officer->name.' (roles refreshed)',
+            ])
+            ->assertOk();
+
+        $this->assertSame(0, $officer->fresh()->tokens()->count(), 'Expected officer Sanctum tokens to be revoked after role sync.');
+
+        // Clear guard state left from the admin request in this same test.
+        $this->app['auth']->forgetGuards();
+        $this->flushHeaders();
+
+        $this->withToken($officerToken)->getJson('/api/auth/me')->assertUnauthorized();
+    }
+
+    public function test_unlinked_payment_amount_cap(): void
+    {
+        $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();
+        $payer = Payer::query()->firstOrFail();
+        Sanctum::actingAs($officer);
+
+        $max = (float) config('ircub.payments.max_unlinked_amount', 100000);
+        $this->postJson('/api/payments', [
+            'payer_id' => $payer->id,
+            'revenue_code' => 'BIZLIC',
+            'amount' => $max + 1,
+            'channel' => 'CASH',
+            'external_ref' => 'SEC-CAP-'.uniqid(),
+        ])->assertStatus(422);
+    }
+
+    public function test_audit_log_redacts_sensitive_keys(): void
+    {
+        $admin = User::query()->where('email', 'admin@ircub.test')->firstOrFail();
+        \App\Models\AuditLog::record(
+            'ChannelPayment',
+            1,
+            'TEST',
+            ['signature' => 'deadbeef', 'amount' => 10],
+            ['token' => 'secret', 'status' => 'OK'],
+            $admin->id
+        );
+
+        Sanctum::actingAs($admin);
+        $res = $this->getJson('/api/audit-logs')->assertOk();
+        $row = collect($res->json('data') ?? $res->json())->first(fn ($r) => ($r['action'] ?? null) === 'TEST');
+        $this->assertNotNull($row);
+        $this->assertSame('[redacted]', $row['before_values']['signature'] ?? null);
+        $this->assertSame('[redacted]', $row['after_values']['token'] ?? null);
+        $this->assertSame(10, $row['before_values']['amount'] ?? null);
+    }
+
+    public function test_channel_payment_index_strips_provider_payloads(): void
+    {
+        $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();
+        $payer = Payer::query()->firstOrFail();
+
+        $cp = \App\Models\ChannelPayment::query()->create([
+            'payer_id' => $payer->id,
+            'revenue_code' => 'BIZLIC',
+            'channel' => 'BANK',
+            'amount_usd' => 100,
+            'amount_local' => 100,
+            'local_currency' => 'USD',
+            'fx_rate' => 1,
+            'external_ref' => 'SEC-CH-'.uniqid(),
+            'status' => 'PENDING',
+            'initiate_payload' => ['signature' => 'x', 'secret' => 'y'],
+            'callback_payload' => ['token' => 'z'],
+            'status_history' => [['event' => 'INIT']],
+            'created_by' => $officer->id,
+        ]);
+
+        Sanctum::actingAs($officer);
+        $res = $this->getJson('/api/channel/payments')->assertOk();
+        $row = collect($res->json('data'))->firstWhere('id', $cp->id);
+        $this->assertNotNull($row);
+        $this->assertArrayNotHasKey('initiate_payload', $row);
+        $this->assertArrayNotHasKey('callback_payload', $row);
+        $this->assertArrayNotHasKey('status_history', $row);
+    }
 }

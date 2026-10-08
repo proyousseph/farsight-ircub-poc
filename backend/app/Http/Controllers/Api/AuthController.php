@@ -208,8 +208,8 @@ class AuthController extends Controller
             return true;
         }
 
-        return $request->boolean('return_token')
-            || $request->header('X-IRCUB-Return-Token') === '1';
+        // Header-only opt-in for API clients — do not accept return_token in body/query.
+        return $request->header('X-IRCUB-Return-Token') === '1';
     }
 
     private function challengeTwoFactor(User $user, ?string $otp): ?JsonResponse

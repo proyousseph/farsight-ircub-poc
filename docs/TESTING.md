@@ -53,8 +53,8 @@ Relevant test env flags:
 
 | Suite | Result |
 |---|---|
-| Full PHPUnit | **36 tests, 161 assertions** — passed |
-| Security + cookie/TOTP | **12 tests, 39 assertions** — passed |
+| Full PHPUnit | **40 tests, 175 assertions** — passed |
+| Security + cookie/TOTP | **16 tests, 53 assertions** — passed |
 | Performance | **4 tests, 15 assertions** — passed |
 | Smokes | Module 5 10/10 · Module 6 13/13 · Module 7 12/12 · Gaps 6/6 |
 
@@ -75,6 +75,10 @@ What those suites prove:
 | Security headers (CSP, nosniff, frame deny) | `CookieAuthAndTotpTest` |
 | Taxpayer cannot capture payments | `SecurityHardeningTest` |
 | Deactivated user tokens rejected | `SecurityHardeningTest` |
+| Role change revokes tokens | `SecurityHardeningTest` |
+| Unlinked payment amount cap | `SecurityHardeningTest` |
+| Audit log redacts sensitive keys | `SecurityHardeningTest` |
+| Channel list strips provider payloads | `SecurityHardeningTest` |
 | Water bill PDF owner scope | `SecurityHardeningTest` |
 | Callback rejects empty identifiers | `SecurityHardeningTest` |
 | Must-change-password gate | `SecurityHardeningTest` |

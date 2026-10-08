@@ -23,7 +23,6 @@ class User extends Authenticatable
         'is_active',
         'must_change_password',
         'two_factor_enabled',
-        'two_factor_secret',
         'two_factor_confirmed_at',
         'payer_id',
     ];

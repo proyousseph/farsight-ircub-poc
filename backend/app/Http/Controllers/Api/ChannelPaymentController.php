@@ -8,6 +8,7 @@ use App\Models\SupervisorNotification;
 use App\Services\ChannelPaymentService;
 use App\Services\MockFxRateClient;
 use App\Support\OwnsPayerScope;
+use App\Support\SensitivePayload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -52,6 +53,10 @@ class ChannelPaymentController extends Controller
             ->latest()
             ->paginate(\App\Support\Pagination::perPage($request));
 
+        $items->getCollection()->transform(
+            fn (ChannelPayment $row) => SensitivePayload::channelPaymentPublic($row->toArray())
+        );
+
         return response()->json($items);
     }
 
@@ -79,15 +84,6 @@ class ChannelPaymentController extends Controller
             return response()->json(['message' => 'You do not have access to initiate payments for this payer.'], 403);
         }
 
-        if (empty($data['assessment_id']) && empty($data['water_bill_id'])) {
-            $maxUnlinked = (float) config('ircub.payments.max_unlinked_amount', 100000);
-            if ((float) $data['amount'] - $maxUnlinked > 0.009) {
-                return response()->json([
-                    'message' => "Unlinked payment amount exceeds the maximum of {$maxUnlinked}.",
-                ], 422);
-            }
-        }
-
         try {
             $payment = $this->channels->initiate($data, $request->user()?->id);
         } catch (\Throwable $e) {
@@ -98,7 +94,7 @@ class ChannelPaymentController extends Controller
 
         return response()->json([
             'message' => 'Channel payment initiated.',
-            'channel_payment' => $payment,
+            'channel_payment' => SensitivePayload::channelPaymentPublic($payment->toArray()),
         ], 201);
     }
 
@@ -113,10 +109,9 @@ class ChannelPaymentController extends Controller
             'creator:id,name',
         ]);
 
-        $payload = $channelPayment->toArray();
-        unset($payload['initiate_payload'], $payload['callback_payload'], $payload['status_history']);
-
-        return response()->json(['channel_payment' => $payload]);
+        return response()->json([
+            'channel_payment' => SensitivePayload::channelPaymentPublic($channelPayment->toArray()),
+        ]);
     }
 
     public function check(Request $request, ChannelPayment $channelPayment): JsonResponse
@@ -150,11 +145,17 @@ class ChannelPaymentController extends Controller
         if ($sync || config('queue.default') === 'sync') {
             $result = $this->channels->processDueRetries($request->user()?->id);
 
+            $safeItems = collect($result['items'])->map(
+                fn ($row) => SensitivePayload::channelPaymentPublic(
+                    is_array($row) ? $row : $row->toArray()
+                )
+            )->values()->all();
+
             return response()->json([
                 'message' => 'Due retries processed.',
                 'queued' => false,
                 'processed' => $result['processed'],
-                'items' => $result['items'],
+                'items' => $safeItems,
             ]);
         }
 
@@ -206,6 +207,15 @@ class ChannelPaymentController extends Controller
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->string('type')))
             ->latest()
             ->paginate(\App\Support\Pagination::perPage($request, 20));
+
+        $items->getCollection()->transform(function (SupervisorNotification $row) {
+            $data = $row->toArray();
+            if (isset($data['payload']) && is_array($data['payload'])) {
+                $data['payload'] = SensitivePayload::channelPaymentPublic($data['payload']);
+            }
+
+            return $data;
+        });
 
         return response()->json($items);
     }

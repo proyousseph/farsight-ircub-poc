@@ -109,13 +109,19 @@ class UserAdminController extends Controller
                 $user->{$field} = $data[$field];
             }
         }
+        if (array_key_exists('two_factor_enabled', $data) && ! $data['two_factor_enabled']) {
+            $user->two_factor_secret = null;
+            $user->two_factor_confirmed_at = null;
+        }
         $user->save();
 
+        $rolesChanged = false;
         if (isset($data['role_ids'])) {
             $user->roles()->sync($data['role_ids']);
+            $rolesChanged = true;
         }
 
-        if ($wasActive && array_key_exists('is_active', $data) && ! $data['is_active']) {
+        if ($rolesChanged || ($wasActive && array_key_exists('is_active', $data) && ! $data['is_active'])) {
             $user->tokens()->delete();
         }
 

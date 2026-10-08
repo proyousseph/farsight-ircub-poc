@@ -30,7 +30,7 @@ const TITLE_MAP = {
 
 function readUserSession() {
   try {
-    const raw = sessionStorage.getItem("userDetails") || localStorage.getItem("userDetails");
+    const raw = sessionStorage.getItem("userDetails");
     if (!raw) return { name: "Guest", email: "", role: "" };
     const stored = JSON.parse(raw);
     return {

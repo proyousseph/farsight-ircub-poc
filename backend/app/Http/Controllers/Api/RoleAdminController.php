@@ -114,15 +114,25 @@ class RoleAdminController extends Controller
             ]);
         }
 
+        $permissionsChanged = false;
         if (isset($data['permission_ids'])) {
             $parent = $role->parent_id ? Role::query()->find($role->parent_id) : null;
             $this->assertSubsetOfParent($parent, $data['permission_ids']);
             $this->assertSubsetOfActor($request->user(), $data['permission_ids']);
             $role->permissions()->sync($data['permission_ids']);
+            $permissionsChanged = true;
         }
 
+        $wasActive = (bool) $role->is_active;
         $role->fill(collect($data)->only(['name', 'description', 'is_active', 'slug'])->all());
         $role->save();
+
+        $deactivated = $wasActive && array_key_exists('is_active', $data) && ! $data['is_active'];
+        if ($permissionsChanged || $deactivated) {
+            foreach ($role->users as $user) {
+                $user->tokens()->delete();
+            }
+        }
 
         return response()->json([
             'message' => 'Role updated.',

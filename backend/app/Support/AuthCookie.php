@@ -66,13 +66,7 @@ class AuthCookie
         try {
             $token = Crypt::decryptString($encoded);
         } catch (\Throwable) {
-            // Legacy base64url payload (pre-Crypt cookies) for one release.
-            $padded = strtr($encoded, '-_', '+/');
-            $pad = strlen($padded) % 4;
-            if ($pad > 0) {
-                $padded .= str_repeat('=', 4 - $pad);
-            }
-            $token = base64_decode($padded, true);
+            return null;
         }
 
         if (! is_string($token) || $token === '' || ! str_contains($token, '|')) {

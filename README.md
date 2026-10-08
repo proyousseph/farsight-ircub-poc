@@ -276,8 +276,8 @@ php artisan test --filter=PerformanceHardeningTest
 
 | Suite | Last green |
 |---|---|
-| Full PHPUnit | **36 tests, 161 assertions** |
-| Security + cookie/TOTP | **12 tests, 39 assertions** |
+| Full PHPUnit | **40 tests, 175 assertions** |
+| Security + cookie/TOTP | **16 tests, 53 assertions** |
 | Performance | **4 tests, 15 assertions** |
 
 ### B) Module smoke scripts (needs Postgres + Redis)
@@ -435,12 +435,16 @@ Channel retries API: `POST /api/channel/retries` queues on Redis, or processes i
 
 | Control | Behaviour |
 |---|---|
-| Auth cookie | HttpOnly `ircub_token` (plus Bearer for APIs/tools) |
+| Auth cookie | Encrypted HttpOnly `ircub_token` (legacy base64 cookies rejected) |
+| Bearer opt-in | Header `X-IRCUB-Return-Token: 1` only (query/body `return_token` ignored) |
 | Active users | Deactivated accounts lose token access (`active` middleware) |
+| Role changes | User/role permission updates revoke Sanctum tokens |
 | Password gate | `must_change_password` blocks business APIs until password change |
 | Taxpayer | No payment capture; own-scope on bills/assessments |
+| Unlinked payments | Cap via `IRCUB_MAX_UNLINKED_PAYMENT` (channel path uses USD after FX) |
+| Sensitive payloads | Audit / channel APIs redact secrets and strip provider blobs |
 | Channel callback | HMAC + throttle; empty identifiers rejected |
-| Headers | `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, … |
+| Headers | API CSP `default-src 'none'`; SPA meta CSP + tighten at reverse proxy |
 | Mocks / docs | `/mock-api` and Swagger limited to local/testing unless enabled |
 | Login throttle | `10/min` on `/api/auth/login` |
 

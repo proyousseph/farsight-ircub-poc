@@ -240,19 +240,19 @@ class PaymentController extends Controller
                 $rejected[] = [
                     'row' => $rowNumber,
                     'reason' => $validator->errors()->first(),
-                    'data' => $data,
+                    'data' => ['payer_tin' => $data['payer_tin'] ?? null, 'external_ref' => $data['external_ref'] ?? null],
                 ];
                 continue;
             }
 
             $payer = Payer::query()->where('tin', strtoupper($data['payer_tin']))->first();
             if (! $payer) {
-                $rejected[] = ['row' => $rowNumber, 'reason' => 'Payer TIN not found.', 'data' => $data];
+                $rejected[] = ['row' => $rowNumber, 'reason' => 'Payer TIN not found.', 'data' => ['payer_tin' => $data['payer_tin']]];
                 continue;
             }
 
             if (! OwnsPayerScope::canAccessPayer($request->user(), (int) $payer->id, 'payments.view', 'payments.view_own')) {
-                $rejected[] = ['row' => $rowNumber, 'reason' => 'No access to this payer.', 'data' => $data];
+                $rejected[] = ['row' => $rowNumber, 'reason' => 'No access to this payer.', 'data' => ['payer_tin' => $data['payer_tin']]];
                 continue;
             }
 
@@ -261,12 +261,12 @@ class PaymentController extends Controller
                 ->where('is_active', true)
                 ->first();
             if (! $revenue) {
-                $rejected[] = ['row' => $rowNumber, 'reason' => 'Revenue code invalid or inactive.', 'data' => $data];
+                $rejected[] = ['row' => $rowNumber, 'reason' => 'Revenue code invalid or inactive.', 'data' => ['revenue_code' => $data['revenue_code']]];
                 continue;
             }
 
             if (Payment::query()->where('external_ref', $data['external_ref'])->exists()) {
-                $rejected[] = ['row' => $rowNumber, 'reason' => 'external_ref already exists.', 'data' => $data];
+                $rejected[] = ['row' => $rowNumber, 'reason' => 'external_ref already exists.', 'data' => ['external_ref' => $data['external_ref']]];
                 continue;
             }
 
@@ -278,6 +278,18 @@ class PaymentController extends Controller
                     ->first();
                 if (! $assessment) {
                     $rejected[] = ['row' => $rowNumber, 'reason' => 'Control number not found for payer.', 'data' => $data];
+                    continue;
+                }
+            }
+
+            if (! $assessment) {
+                $maxUnlinked = (float) config('ircub.payments.max_unlinked_amount', 100000);
+                if ((float) $data['amount'] - $maxUnlinked > 0.009) {
+                    $rejected[] = [
+                        'row' => $rowNumber,
+                        'reason' => "Unlinked payment amount exceeds the maximum of {$maxUnlinked}.",
+                        'data' => ['payer_tin' => $data['payer_tin'], 'external_ref' => $data['external_ref']],
+                    ];
                     continue;
                 }
             }

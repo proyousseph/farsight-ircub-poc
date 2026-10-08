@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Support\SensitivePayload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -23,40 +24,12 @@ class AuditLogController extends Controller
             ->paginate(\App\Support\Pagination::perPage($request, 20));
 
         $logs->getCollection()->transform(function (AuditLog $log) {
-            $log->before = $this->redactSensitive($log->before);
-            $log->after = $this->redactSensitive($log->after);
+            $log->before_values = SensitivePayload::redact($log->before_values);
+            $log->after_values = SensitivePayload::redact($log->after_values);
 
             return $log;
         });
 
         return response()->json($logs);
-    }
-
-    /**
-     * @param  array<string, mixed>|null  $payload
-     * @return array<string, mixed>|null
-     */
-    private function redactSensitive(?array $payload): ?array
-    {
-        if ($payload === null) {
-            return null;
-        }
-
-        $sensitive = [
-            'password', 'remember_token', 'token', 'secret', 'signature', 'authorization',
-            'initiate_payload', 'callback_payload', 'two_factor_secret', 'national_id',
-        ];
-
-        foreach ($payload as $key => $value) {
-            if (in_array($key, $sensitive, true)) {
-                $payload[$key] = '[redacted]';
-                continue;
-            }
-            if (is_array($value)) {
-                $payload[$key] = $this->redactSensitive($value);
-            }
-        }
-
-        return $payload;
     }
 }

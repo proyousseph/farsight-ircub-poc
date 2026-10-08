@@ -45,6 +45,15 @@ class ChannelPaymentService
 
         $this->assertLinkedObligations($data, $amountUsd);
 
+        if (empty($data['assessment_id']) && empty($data['water_bill_id'])) {
+            $maxUnlinked = (float) config('ircub.payments.max_unlinked_amount', 100000);
+            if ($amountUsd - $maxUnlinked > 0.009) {
+                throw new \InvalidArgumentException(
+                    "Unlinked payment amount (USD {$amountUsd}) exceeds the maximum of {$maxUnlinked}."
+                );
+            }
+        }
+
         $externalRef = $data['external_ref'] ?? ('CH-'.now()->format('ymdHis').'-'.Str::upper(Str::random(5)));
         $simulate = $data['simulate'] ?? 'PENDING';
 
@@ -325,13 +334,20 @@ class ChannelPaymentService
                     $channelPayment->external_ref,
                     $channelPayment->failure_reason ?? 'n/a'
                 ),
-                'payload' => $channelPayment->toArray(),
+                'payload' => \App\Support\SensitivePayload::channelPaymentPublic($channelPayment->toArray()),
             ]);
             $channelPayment->supervisor_notified_at = now();
             $channelPayment->save();
         }
 
-        AuditLog::record('ChannelPayment', $channelPayment->id, 'PERMANENTLY_FAILED', $before, $channelPayment->toArray(), $userId);
+        AuditLog::record(
+            'ChannelPayment',
+            $channelPayment->id,
+            'PERMANENTLY_FAILED',
+            \App\Support\SensitivePayload::channelPaymentPublic($before),
+            \App\Support\SensitivePayload::channelPaymentPublic($channelPayment->toArray()),
+            $userId
+        );
     }
 
     private function finalizeSuccess(ChannelPayment $channelPayment, ?int $userId = null): void
@@ -471,13 +487,6 @@ class ChannelPaymentService
      */
     private function redactPayload(array $payload): array
     {
-        $redacted = $payload;
-        foreach (['signature', 'secret', 'token', 'authorization'] as $key) {
-            if (array_key_exists($key, $redacted)) {
-                $redacted[$key] = '[redacted]';
-            }
-        }
-
-        return $redacted;
+        return \App\Support\SensitivePayload::redact($payload) ?? [];
     }
 }
