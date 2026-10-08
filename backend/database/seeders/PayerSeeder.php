@@ -131,7 +131,20 @@ class PayerSeeder extends Seeder
             User::query()->where('email', 'taxpayer@ircub.test')->update(['payer_id' => $aminaId]);
         }
 
-        // Demo optional 2FA stub (OTP 123456) on auditor account.
-        User::query()->where('email', 'auditor@ircub.test')->update(['two_factor_enabled' => true]);
+        // Testing only: flag-on auditor exercises stub OTP (IRCUB_2FA_ALLOW_STUB).
+        // Local/Contabo: never enable 2FA without a confirmed TOTP secret.
+        if (app()->environment('testing')) {
+            User::query()->where('email', 'auditor@ircub.test')->update([
+                'two_factor_enabled' => true,
+                'two_factor_secret' => null,
+                'two_factor_confirmed_at' => null,
+            ]);
+        } else {
+            User::query()->where('email', 'auditor@ircub.test')->update([
+                'two_factor_enabled' => false,
+                'two_factor_secret' => null,
+                'two_factor_confirmed_at' => null,
+            ]);
+        }
     }
 }

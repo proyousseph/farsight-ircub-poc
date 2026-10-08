@@ -224,6 +224,87 @@ class SecurityHardeningTest extends TestCase
         $this->getJson('/api/channel/payments/'.$own->id)->assertOk();
     }
 
+    public function test_channel_payment_check_enforces_own_scope(): void
+    {
+        $taxpayer = User::query()->where('email', 'taxpayer@ircub.test')->firstOrFail();
+        $otherPayer = Payer::query()->where('id', '!=', $taxpayer->payer_id)->firstOrFail();
+
+        $captureOwn = \App\Models\Permission::query()->whereIn('slug', [
+            'payments.capture',
+            'payments.view_own',
+        ])->pluck('id')->all();
+        $role = \App\Models\Role::query()->create([
+            'name' => 'Scoped Cashier',
+            'slug' => 'scoped-cashier-'.uniqid(),
+            'is_system' => false,
+            'is_active' => true,
+            'level' => 1,
+        ]);
+        $role->permissions()->sync($captureOwn);
+
+        $cashier = User::query()->create([
+            'name' => 'Scoped Cashier',
+            'email' => 'scoped.cashier.'.uniqid().'@ircub.test',
+            'password' => 'Password@123',
+            'is_active' => true,
+            'must_change_password' => false,
+            'payer_id' => $taxpayer->payer_id,
+        ]);
+        $cashier->roles()->sync([$role->id]);
+
+        $foreign = \App\Models\ChannelPayment::query()->create([
+            'payer_id' => $otherPayer->id,
+            'revenue_code' => 'BIZLIC',
+            'channel' => 'BANK',
+            'amount_usd' => 20,
+            'amount_local' => 20,
+            'local_currency' => 'USD',
+            'fx_rate' => 1,
+            'external_ref' => 'SEC-CH-CHK-'.uniqid(),
+            'provider_txn_id' => 'PTX-CHK-'.uniqid(),
+            'status' => 'PENDING',
+            'created_by' => $cashier->id,
+        ]);
+
+        Sanctum::actingAs($cashier);
+        $this->postJson('/api/channel/payments/'.$foreign->id.'/check')->assertForbidden();
+    }
+
+    public function test_status_check_success_requires_matching_amount(): void
+    {
+        $officer = User::query()->where('email', 'officer@ircub.test')->firstOrFail();
+        $payer = Payer::query()->firstOrFail();
+        $service = app(\App\Services\ChannelPaymentService::class);
+
+        $payment = $service->initiate([
+            'payer_id' => $payer->id,
+            'revenue_code' => 'BIZLIC',
+            'channel' => 'BANK',
+            'amount' => 18,
+            'currency' => 'USD',
+            'external_ref' => 'SEC-CH-AMTCHK-'.uniqid(),
+            'simulate' => 'PENDING',
+        ], $officer->id);
+
+        $this->assertNotEmpty($payment->provider_txn_id);
+        $key = 'mock_channel_txn:'.$payment->provider_txn_id;
+        $record = \Illuminate\Support\Facades\Cache::get($key);
+        $this->assertIsArray($record);
+        $record['status'] = 'SUCCESS';
+        $record['amount'] = ((float) $payment->amount_usd) + 50;
+        \Illuminate\Support\Facades\Cache::put($key, $record, now()->addHour());
+
+        try {
+            $service->checkStatus($payment->fresh(), $officer->id);
+            $this->fail('Expected InvalidArgumentException for amount mismatch.');
+        } catch (\InvalidArgumentException $e) {
+            $this->assertStringContainsString('Settlement amount does not match', $e->getMessage());
+        }
+
+        $payment->refresh();
+        $this->assertNotSame('SUCCESS', $payment->status);
+    }
+
     public function test_admin_clearing_2fa_requires_admin_password(): void
     {
         $admin = User::query()->where('email', 'admin@ircub.test')->firstOrFail();

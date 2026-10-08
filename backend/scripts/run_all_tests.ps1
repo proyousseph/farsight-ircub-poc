@@ -32,8 +32,8 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Host @"
 
 ALL TEST SUITES PASSED
-  - PHPUnit (full)              expected ~44 tests / ~192 assertions
-  - Security + cookie/TOTP      expected ~20 tests / ~70 assertions
+  - PHPUnit (full)              expected ~46 tests / ~197 assertions
+  - Security + cookie/TOTP      expected ~22 tests / ~75 assertions
   - Performance                 expected ~4 tests / ~15 assertions
   - Module 5 / 6 / 7 smokes + gaps (10+13+12+6)
 "@ -ForegroundColor Green

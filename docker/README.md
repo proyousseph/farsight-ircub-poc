@@ -57,7 +57,7 @@ Containers: `ircub-api`, `ircub-queue`, `ircub-scheduler`, `ircub-web`, `ircub-p
 
 Lab opt-in (set in **Project/.env** so compose `${}` picks them up): `APP_DEBUG=true`, `CHANNEL_ALLOW_SIMULATE=true`, `IRCUB_2FA_ALLOW_STUB=true`, `IRCUB_DOCS_ENABLED=true`.
 
-**Contabo / staging checklist:** `APP_ENV=production`, `APP_DEBUG=false`, `CHANNEL_ALLOW_SIMULATE=false`, `CHANNEL_ALLOW_MOCK=false`, `FMIS_ALLOW_MOCK=false`, `IRCUB_2FA_ALLOW_STUB=false`, `IRCUB_DOCS_ENABLED=false`, strong `CHANNEL_CALLBACK_SECRET`, `SESSION_SECURE_COOKIE=true`.
+**Contabo / staging checklist:** `APP_ENV=production`, `APP_DEBUG=false`, `CHANNEL_ALLOW_SIMULATE=false`, `IRCUB_2FA_ALLOW_STUB=false`, `IRCUB_DOCS_ENABLED=false`, `IRCUB_SEED_ON_BOOT=false`, strong `CHANNEL_CALLBACK_SECRET` + `APP_KEY`, `SESSION_SECURE_COOKIE=true`. Take-home Contabo may keep `CHANNEL_ALLOW_MOCK`/`FMIS_ALLOW_MOCK=true` (mock rails; no auto-SUCCESS — settle via HMAC callback). For a real PSP, set both mock flags **false**.
 
 ### Nginx (`web`)
 

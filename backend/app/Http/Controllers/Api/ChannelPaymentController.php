@@ -129,6 +129,15 @@ class ChannelPaymentController extends Controller
 
     public function check(Request $request, ChannelPayment $channelPayment): JsonResponse
     {
+        if (! OwnsPayerScope::canAccessPayer(
+            $request->user(),
+            (int) $channelPayment->payer_id,
+            'payments.view',
+            'payments.view_own'
+        )) {
+            return response()->json(['message' => 'You do not have access to check this channel payment.'], 403);
+        }
+
         try {
             $payment = $this->channels->checkStatus($channelPayment, $request->user()?->id);
         } catch (\Throwable $e) {

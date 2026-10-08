@@ -26,9 +26,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'trusted.origin' => \App\Http\Middleware\EnsureTrustedOrigin::class,
         ]);
 
-        // Contabo / SSI Nginx terminates TLS and forwards X-Forwarded-Proto.
+        // Contabo / SSI Nginx terminates TLS and forwards X-Forwarded-*.
+        // Prefer TRUSTED_PROXIES=comma-separated IPs; "*" only when the API is never exposed bare.
+        $trustedProxies = env('TRUSTED_PROXIES', '*');
+        $proxyAt = ($trustedProxies === null || $trustedProxies === '' || $trustedProxies === '*')
+            ? '*'
+            : array_values(array_filter(array_map('trim', explode(',', (string) $trustedProxies))));
         $middleware->trustProxies(
-            at: '*',
+            at: $proxyAt,
             headers: Request::HEADER_X_FORWARDED_FOR
                 | Request::HEADER_X_FORWARDED_HOST
                 | Request::HEADER_X_FORWARDED_PORT
