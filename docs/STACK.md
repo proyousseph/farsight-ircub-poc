@@ -1,5 +1,7 @@
 # IRCUB technology decisions
 
+I chose this stack for the take-home:
+
 - Frontend: Dompet (React + Vite) from Envato Elements
 - Backend: Laravel API
 - Database: PostgreSQL 16
@@ -8,8 +10,8 @@
 
 ## Dompet template source
 
-Extracted from:
+I extracted Dompet from:
 
 `react-vite-admin-dashboard-template-2026-01-08-15-42-22-utc/Vite-Dompet-v1.0-10_July_2024`
 
-Placed in `Project/frontend`.
+and placed it in `Project/frontend`.

@@ -2,10 +2,12 @@
 
 **Farsight Africa Technologies — Software Developer take-home POC**
 
+I built this POC as Yusuf Mohamed Ahmed. Scope is Modules 1–7 (the brief allows about five working days; I tracked delivery by **module**).
+
 | | |
 |---|---|
-| Candidate | Yusuf Mohamed Ahmed |
-| Scope | Modules 1–7 (brief allows about five working days; delivery is tracked by **module**) |
+| Author | Yusuf Mohamed Ahmed |
+| Scope | Modules 1–7 |
 | Repository | https://github.com/proyousseph/farsight-ircub-poc |
 | **Live demo** | **https://ircub.waagefaal.so** |
 
@@ -27,13 +29,13 @@
 
 3. On first login you **must change the password** (security requirement).
 
-The live site runs on Contabo with HTTPS. Banks, mobile money, SMS, FX rates, and FMIS are **mocked** for this POC — there is no real money movement.
+I host the live site on Contabo with HTTPS. Banks, mobile money, SMS, FX rates, and FMIS are **mocked** — there is no real money movement.
 
 ---
 
 ## What is IRCUB?
 
-A proof-of-concept for how a ministry of finance and a water utility can work in one system:
+I built this proof-of-concept to show how a ministry of finance and a water utility can work in one system:
 
 - Register taxpayers and customers  
 - Raise tax assessments and collect payments  
@@ -44,7 +46,7 @@ A proof-of-concept for how a ministry of finance and a water utility can work in
 
 ---
 
-## Delivery status
+## What I delivered
 
 | Area | Status |
 |---|---|
@@ -178,7 +180,7 @@ php artisan queue:work redis --queue=channels,fmis,notifications,dashboard,defau
 php artisan schedule:work
 ```
 
-### Contabo (already deployed)
+### Contabo (I already deployed this)
 
 | | |
 |---|---|
@@ -189,7 +191,7 @@ php artisan schedule:work
 | HTTPS | Let’s Encrypt via `ssiwebsite-proxy` |
 | Deploy helper | [`scripts/deploy_contabo.ps1`](scripts/deploy_contabo.ps1) |
 
-On Contabo: production mode, secure cookies, no Swagger, no seed-on-boot after first setup. Mocks stay on so the demo works without real banks.
+On Contabo I run production mode, secure cookies, no Swagger, and no seed-on-boot after first setup. Mocks stay on so the demo works without real banks.
 
 ---
 
@@ -251,27 +253,27 @@ bash scripts/run_all_tests.sh
 
 ## Main features (plain language)
 
-**Users & security** — Six roles, permissions, optional TOTP, audit log with a tamper-evident hash chain, payment reversals that need a different person to approve.
+**Users & security** — I implemented six roles, permissions, optional TOTP, an audit log with a tamper-evident hash chain, and payment reversals that need a different person to approve.
 
-**Registry** — Payers / customers with duplicate checks (including normalized TIN), 360° profile, and configurable revenue types.
+**Registry** — Payers / customers with duplicate checks (including normalized TIN), a 360° profile, and configurable revenue types.
 
-**Tax** — Assessments, payments (USD capture), CSV upload, filters, audit trail.
+**Tax** — Assessments, payments (USD capture), CSV upload, filters, and an audit trail.
 
-**Water** — Tariffs, meter readings, monthly bills (past months only), PDFs, statements, abnormal-use holds; water accounts can be linked to existing payers.
+**Water** — Tariffs, meter readings, monthly bills (past months only), PDFs, statements, and abnormal-use holds; water accounts can be linked to existing payers.
 
-**Channels** — Mock FX, bank/mobile initiate + HMAC callback, retries, daily reconciliation. Success needs a matching amount (no fake auto-success).
+**Channels** — Mock FX, bank/mobile initiate + HMAC callback, retries, and daily reconciliation. Success needs a matching amount (no fake auto-success).
 
-**FMIS** — GL mapping, daily journals, post/reverse, IRCUB vs FMIS recon.
+**FMIS** — GL mapping, daily journals, post/reverse, and IRCUB vs FMIS recon.
 
-**Dashboard** — Trends, targets, water efficiency, OLS next-quarter forecast, alerts.
+**Dashboard** — Trends, targets, water efficiency, an OLS next-quarter forecast, and alerts.
 
-**Taxpayer self-service** — View own data; pay and check own linked obligations; cannot capture arbitrary payments for other people.
+**Taxpayer self-service** — Taxpayers can view their own data and pay/check their own linked obligations; they cannot capture payments for other people.
 
 ---
 
 ## Performance (POC)
 
-| Area | What we did |
+| Area | What I did |
 |---|---|
 | Dashboard | Daily aggregates + Redis cache |
 | Lists | Pagination (max 100 per page) |
@@ -296,20 +298,20 @@ bash scripts/run_all_tests.sh
 
 ## Assumptions & limits
 
-- This is a **POC sandbox**, not a live payment system.  
+- I built this as a **POC sandbox**, not a live payment system.  
 - Banks, mobile money, SMS, FX, and FMIS are **mocked**.  
 - Dashboard “near real-time” uses short polling, not WebSockets.  
-- Forecast is simple OLS on monthly totals — clear for a demo, not a production forecasting product.  
-- No real citizen or financial data is used.  
+- The forecast is simple OLS on monthly totals — clear for a demo, not a production forecasting product.  
+- I do not use real citizen or financial data.  
 
 ---
 
 ## AI assistance
 
-AI coding assistants (including Cursor) were used during scaffolding and implementation. The candidate can explain all submitted code. Commits are kept intentional for review.
+I used AI coding assistants (including Cursor) while scaffolding and building this project. I can explain all of the code in this repo, and I kept commits intentional so they are easy to review.
 
 ---
 
 ## License / UI template
 
-Application code is submitted for the Farsight Africa evaluation. The Dompet React admin UI is used under an Envato Elements license for this project and is not redistributed as a standalone commercial template.
+I am submitting this application code for the Farsight Africa evaluation. I use the Dompet React admin UI under an Envato Elements license for this project; I am not redistributing it as a standalone commercial template.

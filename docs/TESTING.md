@@ -1,6 +1,6 @@
 # IRCUB testing guide
 
-See also the **Testing** section in the root [`README.md`](../README.md).
+How I run and verify tests for this project. See also the **Testing** section in the root [`README.md`](../README.md).
 
 ## Quick commands
 
@@ -51,7 +51,7 @@ Relevant test env flags (`phpunit.xml`):
 - `IRCUB_AUTH_COOKIE_SAMESITE=lax`
 - `IRCUB_MAX_UNLINKED_PAYMENT=100000`
 
-## Last known green run
+## Last green run (my machine)
 
 | Suite | Result |
 |---|---|
@@ -60,7 +60,7 @@ Relevant test env flags (`phpunit.xml`):
 | Performance | **4 tests, 15 assertions** — passed |
 | Smokes | Module 5 10/10 · Module 6 13/13 · Module 7 12/12 · Gaps 6/6 |
 
-## Security / auth checks to re-run after changes
+## Security / auth checks I re-run after changes
 
 ```bash
 cd backend
@@ -68,7 +68,7 @@ php artisan test --filter="SecurityHardeningTest|CookieAuthAndTotpTest|TotpTest"
 php scripts/verify_gaps.php   # needs Postgres
 ```
 
-What those suites prove:
+What those suites cover:
 
 | Check | Covered by |
 |---|---|
@@ -126,4 +126,4 @@ Smoke scripts need backend `.env` pointing at host Postgres (`127.0.0.1:5433`) a
 
 ## Hosted demo
 
-**https://ircub.waagefaal.so** — Contabo Docker stack; Swagger/docs off; seed-on-boot off. Quick check: SPA 200, `/api/auth/me` 401 without cookie, login with `admin@ircub.test`.
+**https://ircub.waagefaal.so** — my Contabo Docker stack; Swagger/docs off; seed-on-boot off. Quick check: SPA 200, `/api/auth/me` 401 without cookie, login with `admin@ircub.test`.

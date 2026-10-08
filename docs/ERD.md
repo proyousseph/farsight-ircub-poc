@@ -1,9 +1,9 @@
 # IRCUB Entity Relationship Diagram
 
-Logical ERD for the PostgreSQL schema used by the IRCUB POC.  
-Rendered with Mermaid (GitHub / VS Code / most Markdown previews).
+This is the logical ERD for the PostgreSQL schema I use in the IRCUB POC.  
+It renders with Mermaid (GitHub / VS Code / most Markdown previews).
 
-Framework tables (`cache`, `jobs`, `sessions`, `password_reset_tokens`, `personal_access_tokens`) are omitted for clarity.
+I omit framework tables (`cache`, `jobs`, `sessions`, `password_reset_tokens`, `personal_access_tokens`) for clarity.
 
 ---
 
@@ -386,9 +386,9 @@ erDiagram
     payments ||--o| fmis_journal_lines : ""
 ```
 
-Traceability path: **Payment → FMIS journal line → FMIS journal batch → mock FMIS reference**.
+Traceability path I designed: **Payment → FMIS journal line → FMIS journal batch → mock FMIS reference**.
 
-`dashboard_daily_aggregates` is a **pre-aggregated** table rebuilt from `payments` (not a live FK graph).
+`dashboard_daily_aggregates` is a **pre-aggregated** table I rebuild from `payments` (not a live FK graph).
 
 ---
 

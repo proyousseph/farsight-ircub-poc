@@ -1,5 +1,7 @@
 # IRCUB API documentation
 
+This is how I document and expose the IRCUB API.
+
 ## OpenAPI / Swagger
 
 | Resource | Location |
@@ -9,7 +11,7 @@
 | Raw YAML (local) | http://localhost:8001/docs/openapi.yaml |
 | Postman collection | [`postman/IRCUB.postman_collection.json`](postman/IRCUB.postman_collection.json) |
 
-> Docs are gated by `IRCUB_DOCS_ENABLED` (on by default in `local` / `testing` only).
+> I gate docs with `IRCUB_DOCS_ENABLED` (on by default in `local` / `testing` only).
 
 ### Try it locally
 
@@ -23,7 +25,7 @@ password is set in `RolePermissionSeeder` and **must be changed** outside the
 
 ### Auth model
 
-IRCUB uses **Laravel Sanctum** with two client modes:
+I use **Laravel Sanctum** with two client modes:
 
 | Client | How auth is sent |
 |---|---|
@@ -56,8 +58,8 @@ Also:
 - Water accounts: `POST/PUT /api/water-accounts` to link meters to existing payers (`payers.create` / `meters.capture`)
 - Channel status check allowed for `payments.pay_own` / view scopes (own payer only via OwnsPayerScope)
 - Audit chain backfill: `php artisan ircub:audit-backfill-chain --verify`
-- Hosted demo: `IRCUB_DEMO_SKIP_PASSWORD_CHANGE=true` keeps seeded logins usable for assessors
-- Channel settlement on Contabo: mocks do **not** auto-SUCCESS — use signed HMAC callback (see Module 5 smoke)
+- Hosted demo: I set `IRCUB_DEMO_SKIP_PASSWORD_CHANGE=true` so seeded logins stay usable for reviewers without an immediate password change
+- Channel settlement on Contabo: mocks do **not** auto-SUCCESS — use a signed HMAC callback (see Module 5 smoke)
 
 ### Import into Postman
 
